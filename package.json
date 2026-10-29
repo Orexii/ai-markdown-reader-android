@@ -1,0 +1,21 @@
+{
+  "name": "ai-markdown-reader-android-tools",
+  "private": true,
+  "description": "Builds the reader web page and the parity goldens from the extension's TypeScript (the extension is a submodule).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p web",
+    "build:web": "node tools/build-web.mjs",
+    "goldens": "node tools/goldens.mjs",
+    "verify": "node tools/build-web.mjs --check && node tools/goldens.mjs --check"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "markdown-it": "^14.1.0",
+    "phonemizer": "1.2.1",
+    "typescript": "^5.8.0"
+  }
+}

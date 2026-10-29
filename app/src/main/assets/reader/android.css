@@ -1,0 +1,76 @@
+/* The VS Code theme variables preview.css uses, with phone-friendly sizes. Loaded before preview.css. */
+html,
+body {
+  --markdown-font-size: 17px;
+  --markdown-line-height: 1.6;
+  --markdown-font-family: system-ui, -apple-system, "Roboto", "Segoe UI", sans-serif;
+  margin: 0;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: var(--vscode-editor-foreground);
+  background: var(--amr-background);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.vscode-light {
+  color-scheme: light;
+  --amr-background: #ffffff;
+  --amr-link: #0b57d0;
+  --vscode-editor-foreground: #1f1f1f;
+  --vscode-textCodeBlock-background: #f2f4f7;
+  --vscode-widget-border: rgba(0, 0, 0, 0.08);
+  --vscode-widget-shadow: rgba(0, 0, 0, 0.25);
+  --vscode-button-background: #0b57d0;
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #0842a0;
+  --vscode-aiMarkdownReader-readingBackground: rgba(11, 87, 208, 0.12);
+  --vscode-aiMarkdownReader-readingWordBackground: rgba(11, 87, 208, 0.34);
+}
+
+body.vscode-dark {
+  color-scheme: dark;
+  --amr-background: #121417;
+  --amr-link: #a8c7fa;
+  --vscode-editor-foreground: #e3e3e3;
+  --vscode-textCodeBlock-background: #1e2227;
+  --vscode-widget-border: rgba(255, 255, 255, 0.08);
+  --vscode-widget-shadow: rgba(0, 0, 0, 0.6);
+  --vscode-button-background: #a8c7fa;
+  --vscode-button-foreground: #062e6f;
+  --vscode-button-hoverBackground: #d3e3fd;
+  --vscode-aiMarkdownReader-readingBackground: rgba(168, 199, 250, 0.16);
+  --vscode-aiMarkdownReader-readingWordBackground: rgba(168, 199, 250, 0.42);
+}
+
+a {
+  color: var(--amr-link);
+}
+
+/* Wide tables and code scroll sideways instead of widening the page. */
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+pre {
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+/* The page continues under the player bar, so the last lines can still scroll up to the reading position. */
+body {
+  padding: 12px 18px 45vh;
+}
+
+#back-to-reading {
+  bottom: 16px;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 15px;
+}
