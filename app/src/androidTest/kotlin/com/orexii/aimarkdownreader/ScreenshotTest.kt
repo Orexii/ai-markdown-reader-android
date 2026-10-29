@@ -9,6 +9,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.orexii.aimarkdownreader.core.EngineKind
 import com.orexii.aimarkdownreader.core.ModelCatalog
+import com.orexii.aimarkdownreader.core.player.PlayerState
 import com.orexii.aimarkdownreader.data.EngineChoice
 import com.orexii.aimarkdownreader.data.ThemeChoice
 import com.orexii.aimarkdownreader.reader.Documents
@@ -66,25 +67,25 @@ class ScreenshotTest {
     }
 
     /**
-     * Reads from passage [from] and takes a screenshot while passages [from] to [until] are being read, with word
-     * [word] or later highlighted. The emulators synthesize at about real time, so the voice gets a head start
-     * while paused, and the screenshot is taken again if reading still stops to wait for audio.
+     * Reads from passage [from] and takes a screenshot while [showing] holds. The emulators synthesize at about real
+     * time, so the voice gets a head start while paused, and the screenshot is taken again if reading still stops
+     * to wait for audio.
      */
-    private fun readingShot(name: String, from: Int, until: Int, word: Int) {
-        fun reading() = app.reader.state.value.let { it.playing && !it.waiting && it.index in from until until }
+    private fun readingShot(name: String, from: Int, showing: (PlayerState) -> Boolean) {
+        fun ready() = app.reader.state.value.let { it.playing && !it.waiting && showing(it) }
         repeat(3) { attempt ->
             app.reader.player.seek(from, 0.0, play = false)
             Thread.sleep(20_000)
             app.reader.player.play()
-            waitFor("$name: word $word read", 60_000) { reading() && app.reader.state.value.word >= word }
+            waitFor("$name to show", 60_000, ::ready)
             // Time for the page to scroll to the highlight and for the player to redraw.
-            if (steady(1_500, ::reading)) {
+            if (steady(1_500, ::ready)) {
                 shot(name, settle = false)
-                if (reading()) return
+                if (ready()) return
             }
-            Log.i("ScreenshotTest", "Reading stopped for audio while taking $name (try ${attempt + 1}); state ${app.reader.state.value}")
+            Log.i("ScreenshotTest", "$name did not hold while reading (try ${attempt + 1}); state ${app.reader.state.value}")
         }
-        error("Reading kept stopping for audio while taking $name")
+        error("Could not take $name while reading")
     }
 
     private fun settings(change: (com.orexii.aimarkdownreader.data.ReaderSettings) -> com.orexii.aimarkdownreader.data.ReaderSettings) =
@@ -102,7 +103,7 @@ class ScreenshotTest {
         /** The first passage after [block] whose block matches [kind] (any spoken block by default). */
         fun after(block: Int, kind: String? = null) =
             doc.blocks.drop(block + 1).firstOrNull { it.first >= 0 && (kind == null || it.kind == kind) }?.first ?: doc.utterances.size
-        // The Quick facts table, which shows the row and cell highlighting, from its second row.
+        // The Quick facts table, which shows the row and cell highlighting.
         val table = doc.blocks.indexOfFirst { it.kind == "table" }
         // The paragraph under "The Shiba scream".
         val paragraph = doc.blocks.indexOfFirst { it.heading?.text == "The Shiba scream" } + 1
@@ -111,18 +112,25 @@ class ScreenshotTest {
             ActivityScenario.launch(MainActivity::class.java).use {
                 device.wait(Until.hasObject(By.res("play")), 30_000)
                 waitFor("the narration and the voice", 90_000) { app.reader.state.value.loaded && app.reader.voice.value == VoiceState.Ready(EngineKind.NATURAL) }
-                readingShot("1-reading-table", doc.blocks[table].first + 2, after(table), word = 2)
-                readingShot("2-reading-text", doc.blocks[paragraph].first, after(paragraph, "heading"), word = 2)
+                // The Coat row, with a word of its own highlighted (words 2 to 9; 1 is the "Wagyu" header).
+                val coat = doc.blocks[table].first + 1
+                readingShot("1-reading-table", coat) { it.index == coat && it.word in 2..9 }
+                val text = doc.blocks[paragraph].first until after(paragraph, "heading")
+                readingShot("2-reading-text", text.first) { it.index in text && it.word >= 1 }
                 app.reader.player.pause()
                 device.findObject(By.res("speed"))?.click()
+                check(device.wait(Until.hasObject(By.text("More speeds…")), 5_000)) { "The speed menu did not open" }
                 shot("3-speeds")
                 device.pressBack()
+                // A tap while the menu is still closing would only close it.
+                check(device.wait(Until.gone(By.text("More speeds…")), 5_000)) { "The speed menu did not close" }
                 device.findObject(By.res("settings"))?.click()
-                Thread.sleep(800)
+                check(device.wait(Until.hasObject(By.text("Voice engine")), 5_000)) { "The settings did not open" }
                 shot("4-settings")
                 device.pressBack()
+                check(device.wait(Until.gone(By.text("Voice engine")), 5_000)) { "The settings did not close" }
                 settings { it.copy(theme = ThemeChoice.DARK) }
-                readingShot("5-dark", doc.blocks[paragraph].first + 1, after(paragraph, "heading"), word = 3)
+                readingShot("5-dark", text.first + 1) { it.index in text && it.word >= 2 }
                 app.reader.player.pause()
                 device.pressBack()
                 settings { it.copy(theme = ThemeChoice.LIGHT) }
