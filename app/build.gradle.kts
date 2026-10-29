@@ -74,11 +74,22 @@ android {
     }
 
     buildTypes {
+        // Test builds install next to the Play version, so they never replace it (or its downloaded voice).
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             if (signing.size == 4) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // The release build (shrunk by R8), signed with the debug key under its own ID, to try on a phone.
+        create("staging") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".staging"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
 

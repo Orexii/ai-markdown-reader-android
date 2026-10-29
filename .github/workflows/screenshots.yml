@@ -65,7 +65,7 @@ jobs:
             adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
             ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.orexii.aimarkdownreader.ScreenshotTest -Pandroid.testInstrumentationRunnerArguments.screenshots=true
-            mkdir -p screenshots && adb pull /sdcard/Android/data/com.orexii.aimarkdownreader/files/screenshots screenshots/${{ matrix.name }}
+            mkdir -p screenshots && adb pull /sdcard/Android/data/com.orexii.aimarkdownreader.debug/files/screenshots screenshots/${{ matrix.name }}
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ matrix.name }}

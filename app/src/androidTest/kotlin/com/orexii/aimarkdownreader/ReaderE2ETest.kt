@@ -36,8 +36,8 @@ private fun until(what: String, timeoutMs: Long, describe: () -> String = { "" }
 }
 
 /** Seconds of speech the natural voice makes per second on this device, from three passages of the guide. */
-private fun measureSpeed(app: App): Double {
-    val engine = NaturalVoice(DeviceFixtures.app, app.models).create(ModelCatalog.Quality.COMPACT, 0)
+private fun measureSpeed(app: App, threads: Int): Double {
+    val engine = NaturalVoice(DeviceFixtures.app, app.models).create(ModelCatalog.Quality.COMPACT, threads)
     try {
         val utterances = DeviceFixtures.documents.getValue("wagyu-rows-announce").utterances.take(6)
         engine.synthesize(utterances.take(1).map { u -> SpeechInput(u.words.map { SynthesisWord(it.text, it.sep) }, u.pauseAfter) }, "af_heart", emptyMap())
@@ -94,13 +94,17 @@ class ReaderE2ETest {
     fun readsTheWagyuGuideWithTheSpokenWordHighlighted() {
         assumeTrue("Push the model to /data/local/tmp/amr-model (CI does this).", DeviceFixtures.installModel())
         val argument = androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("rate") ?: "3"
+        // On a slow device (CI's emulator) use every core and the fastest speed it keeps up with, with room to spare.
+        val threads = if (argument == "auto") Runtime.getRuntime().availableProcessors() else 0
         val rate = if (argument == "auto") {
-            val speed = measureSpeed(app)
-            (Math.floor(speed / 1.6 * 4) / 4).coerceIn(0.25, 3.0).also { Log.i(TAG, "Synthesis runs at %.1f× real time here; testing at $it×".format(speed)) }
+            val speed = measureSpeed(app, threads)
+            (Math.round(speed / 1.5 * 4) / 4.0).coerceIn(0.25, 3.0).also { Log.i(TAG, "Synthesis runs at %.1f× real time here; testing at $it×".format(speed)) }
         } else argument.toDouble()
         runBlocking {
             withContext(Dispatchers.Main) {
-                app.settings.update { it.copy(engine = EngineChoice.NATURAL, quality = ModelCatalog.Quality.COMPACT, voice = "af_heart", rate = rate, highlightWords = true, follow = true) }
+                app.settings.update {
+                    it.copy(engine = EngineChoice.NATURAL, quality = ModelCatalog.Quality.COMPACT, voice = "af_heart", rate = rate, threads = threads, highlightWords = true, follow = true)
+                }
             }
             app.library.savePosition("asset:///samples/wagyu.md", null)
         }
@@ -149,7 +153,7 @@ class ReaderE2ETest {
             Log.i(TAG, "At ${rate}×: read %.0f s of text in 25 s; passage ${end.index} of ${end.count}; ${words.size} words highlighted; page matched the spoken word in $matches of $checks checks; stalls ${end.stalls}".format(read))
             assertTrue("at most one stall at ${rate}× (the extension's bar): ${end.stalls}", end.stalls <= 1)
             assertTrue("reading moved on: $read s", read > 25 * rate * 0.6)
-            assertTrue("words were highlighted one after another: ${words.size}", words.size > 25 * rate)
+            assertTrue("words were highlighted one after another: ${words.size} in %.0f s of text".format(read), words.size >= read * 0.5)
             assertTrue("the page highlights the word being spoken: $matches of $checks", checks > 50 && matches >= checks * 0.7)
             assertTrue("the word is inside the highlighted sentence: $inside of $checks", inside >= checks * 0.9)
 

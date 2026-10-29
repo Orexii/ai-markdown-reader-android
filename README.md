@@ -97,7 +97,7 @@ guide with real taps, plays at 3× and checks that the page highlights the spoke
 emulator synthesizes slower than a phone, so it passes `rate=auto`: the fastest speed that device keeps up with.
 To run the device tests without Gradle (over wireless debugging, Gradle may restart adb and drop the connection):
 `adb install -r -t app-debug.apk`, the same for `app-debug-androidTest.apk`, then
-`adb shell am instrument -w -e rate 3 com.orexii.aimarkdownreader.test/androidx.test.runner.AndroidJUnitRunner`.
+`adb shell am instrument -w -e rate 3 com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 
 CI checks the generated files, runs the JVM tests with the real model, builds and lints the app, then runs the
 device tests on an x86_64 emulator.
@@ -106,6 +106,20 @@ Building on Arm64 Linux (for example WSL on a Snapdragon laptop) works with `qem
 (`dpkg --add-architecture amd64`) for Google's x86_64 build tools; set `cmake.dir=/usr` in `local.properties` to
 use the system CMake. Android emulators do not run on Arm64 Linux or Windows on Arm; use a phone with wireless
 debugging, or CI.
+
+## Releasing
+
+1. Set `amr.versionName` and increase `amr.versionCode` in `gradle.properties`, add a CHANGELOG entry, update the
+   README and [CHECKLIST.md](CHECKLIST.md) if behaviour changed, commit, push, and wait for CI to pass.
+2. Publish GitHub release `v<version>`. The [release workflow](.github/workflows/release.yml) builds the app bundle
+   (`.aab`, for Google Play) and the APK (for direct download), signed with the upload key, and attaches them with
+   their SHA-256. With Google Play access set up, it also uploads the bundle to Play.
+3. In Play Console, roll the release out. [play/README.md](play/README.md) has every Play Console answer, the
+   closed-test rule for new accounts and how the signing keys work.
+
+`./gradlew :app:assembleStaging` builds the release configuration (shrunk by R8) signed with the debug key as
+`com.orexii.aimarkdownreader.staging`, to try on a phone next to the Play version. Debug builds are
+`com.orexii.aimarkdownreader.debug`.
 
 ## License
 

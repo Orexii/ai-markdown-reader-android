@@ -1,8 +1,9 @@
 name: Release
 # Publishing a GitHub release (tag v<version>, matching amr.versionName) builds the signed app bundle for Google
-# Play and the APK for direct download, and attaches both with their SHA-256. When the PLAY_SERVICE_ACCOUNT_JSON
-# secret is set, the bundle is also uploaded to the Google Play track in the PLAY_TRACK variable (internal by
-# default). See README.md, Releasing.
+# Play and the APK for direct download, and attaches both with their SHA-256. With Google Play access configured,
+# the bundle is also uploaded to the track in the PLAY_TRACK variable (internal by default): preferably keyless,
+# through Workload Identity Federation (variables GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_SERVICE_ACCOUNT), or with
+# a service account key (secret PLAY_SERVICE_ACCOUNT_JSON). See play/README.md.
 on:
   release:
     types: [published]
@@ -13,6 +14,7 @@ on:
         required: true
 permissions:
   contents: write
+  id-token: write
 concurrency:
   group: release
   cancel-in-progress: false
@@ -73,11 +75,30 @@ jobs:
       - name: Prepare the Google Play upload
         id: play
         env:
-          PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_KEY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          WIF: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
         run: |
-          if [ -n "$PLAY" ]; then echo "upload=true" >> "$GITHUB_OUTPUT"; else echo "No PLAY_SERVICE_ACCOUNT_JSON secret: upload the bundle in Play Console."; fi
+          if [ -n "$WIF" ]; then echo "mode=wif" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PLAY_KEY" ]; then echo "mode=key" >> "$GITHUB_OUTPUT"
+          else echo "No Google Play access configured: upload releases/*.aab in Play Console."; fi
           mkdir -p whatsnew && cp releases/whatsnew-en-US whatsnew/
-      - if: steps.play.outputs.upload == 'true'
+      - if: steps.play.outputs.mode == 'wif'
+        id: gcp
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - if: steps.play.outputs.mode == 'wif'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ steps.gcp.outputs.credentials_file_path }}
+          packageName: com.orexii.aimarkdownreader
+          releaseFiles: releases/ai-markdown-reader-${{ env.VERSION }}.aab
+          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+          whatsNewDirectory: whatsnew
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
+      - if: steps.play.outputs.mode == 'key'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
