@@ -42,9 +42,10 @@ fun pageOptions(settings: ReaderSettings, document: OpenDocument) = JsonObject(
 )
 
 /** The status line under the controls (player.js updateControls). */
-fun statusOf(state: PlayerState, voice: VoiceState): String? = when {
+fun statusOf(state: PlayerState, voice: VoiceState, blocked: String? = null): String? = when {
     state.error != null -> state.error
     !state.loaded -> null
+    blocked != null && !state.playing -> blocked
     voice is VoiceState.Failed -> voice.message
     voice == VoiceState.Loading && state.playing -> "Starting the voice…"
     state.playing && state.waiting -> "Preparing audio…"
@@ -61,6 +62,8 @@ fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: Read
     val settings by reader.settings.settings.collectAsStateWithLifecycle()
     val voice by reader.voice.collectAsStateWithLifecycle()
     val download by reader.models.download.collectAsStateWithLifecycle()
+    val blocked by reader.blocked.collectAsStateWithLifecycle()
+    val waitingForCall by reader.waitingForCall.collectAsStateWithLifecycle()
     val dark = isDark(settings.theme)
     var showSettings by remember { mutableStateOf(false) }
     var narrated by remember { mutableStateOf(settings.tableMode to settings.codeBlocks) }
@@ -101,12 +104,13 @@ fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: Read
                 if (needsVoice && state.loaded) VoiceSetup(reader, settings, download, Modifier.padding(8.dp))
                 PlayerBar(
                     state = state,
-                    status = statusOf(state, voice),
+                    status = statusOf(state, voice, blocked),
+                    pending = waitingForCall,
                     expandedSpeeds = settings.expandedSpeeds,
                     skipBack = settings.skipBack,
                     skipForward = settings.skipForward,
                     onCommand = { action ->
-                        if (action == "togglePlay" && !state.playing) webView.reveal()
+                        if (action == "togglePlay" && !state.playing && !waitingForCall) webView.reveal()
                         reader.command(action)
                     },
                     onSeek = { reader.player.seekTo(it) },

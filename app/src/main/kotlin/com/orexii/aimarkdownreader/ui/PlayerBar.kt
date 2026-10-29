@@ -70,6 +70,8 @@ fun PlayerBar(
     onExpandSpeeds: (Boolean) -> Unit,
     onSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Play was pressed but reading waits (for a call to end); the button cancels it. */
+    pending: Boolean = false,
 ) {
     var scrubbing by remember { mutableStateOf<Float?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
@@ -118,9 +120,15 @@ fun PlayerBar(
                     FilledIconButton(
                         onClick = { onCommand("togglePlay") },
                         enabled = state.loaded,
-                        modifier = Modifier.size(56.dp).testTag("play").semantics { contentDescription = if (state.playing) "Pause" else "Play" },
+                        modifier = Modifier.size(56.dp).testTag("play").semantics {
+                            contentDescription = when {
+                                pending -> "Cancel"
+                                state.playing -> "Pause"
+                                else -> "Play"
+                            }
+                        },
                     ) {
-                        if (state.playing && (state.waiting || !state.engineReady)) {
+                        if (pending || (state.playing && (state.waiting || !state.engineReady))) {
                             CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Icon(if (state.playing) PlayerIcons.Pause else PlayerIcons.Play, contentDescription = null, modifier = Modifier.size(32.dp))

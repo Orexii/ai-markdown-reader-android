@@ -104,6 +104,7 @@ class ReaderController(
     fun open(document: OpenDocument, play: Boolean = false) {
         val same = documentFlow.value?.uri == document.uri && documentFlow.value?.text == document.text
         if (!same) {
+            cancelCallWait()
             player.unload()
             narration = null
             selection = false
@@ -189,6 +190,7 @@ class ReaderController(
     }
 
     fun close() {
+        cancelCallWait()
         player.pause()
         player.unload()
         documentFlow.value = null
@@ -200,9 +202,16 @@ class ReaderController(
     fun command(action: String) {
         val s = settings.settings.value
         when (action) {
-            "togglePlay" -> if (player.state.value.playing) player.pause() else play()
+            "togglePlay" -> when {
+                waitingForCallFlow.value -> cancelCallWait()
+                player.state.value.playing -> player.pause()
+                else -> play()
+            }
             "play" -> play()
-            "pause", "stop" -> player.pause()
+            "pause", "stop" -> {
+                cancelCallWait()
+                player.pause()
+            }
             "skipBack" -> player.skip(-s.skipBack.toDouble())
             "skipForward" -> player.skip(s.skipForward.toDouble())
             "previousSentence" -> player.previousSentence()
@@ -351,25 +360,73 @@ class ReaderController(
         AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             .setWillPauseWhenDucked(true)
-            .setOnAudioFocusChangeListener { change ->
-                when (change) {
-                    AudioManager.AUDIOFOCUS_LOSS -> {
-                        resumeOnFocus = false
-                        player.pause()
-                    }
-                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                        if (player.state.value.playing) {
-                            resumeOnFocus = true
-                            player.pause()
-                        }
-                    }
-                    AudioManager.AUDIOFOCUS_GAIN -> if (resumeOnFocus) {
-                        resumeOnFocus = false
-                        player.play()
-                    }
+            // During a call the system can grant the focus once the call ends, instead of refusing it.
+            .setAcceptsDelayedFocusGain(true)
+            .setOnAudioFocusChangeListener(::onFocusChange)
+            .build()
+
+    /** Why reading can't start now (a call, or another app's audio), for the player's status line. */
+    private val blockedFlow = MutableStateFlow<String?>(null)
+    val blocked: StateFlow<String?> = blockedFlow.asStateFlow()
+
+    /** Play was pressed during a call: reading starts when the call ends (the play button shows it is pending). */
+    private val waitingForCallFlow = MutableStateFlow(false)
+    val waitingForCall: StateFlow<Boolean> = waitingForCallFlow.asStateFlow()
+    private var callWatch: Job? = null
+
+    private fun onFocusChange(change: Int) {
+        when (change) {
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                focusHeld = false
+                resumeOnFocus = false
+                cancelCallWait()
+                player.pause()
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                // For example a call: pause, and continue when it ends.
+                if (player.state.value.playing) {
+                    resumeOnFocus = true
+                    player.pause()
                 }
             }
-            .build()
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                focusHeld = true
+                if (resumeOnFocus || waitingForCallFlow.value) {
+                    resumeOnFocus = false
+                    cancelCallWait()
+                    player.play()
+                }
+            }
+        }
+    }
+
+    private fun inCall(): Boolean = audio.mode in setOf(
+        AudioManager.MODE_IN_CALL, AudioManager.MODE_IN_COMMUNICATION, AudioManager.MODE_RINGTONE, AudioManager.MODE_CALL_SCREENING,
+    )
+
+    /** Holds reading until the call ends. Phones that refuse the focus outright, rather than delaying it, are watched. */
+    private fun waitForCall() {
+        player.pause()
+        waitingForCallFlow.value = true
+        blockedFlow.value = "Reading starts when the call ends."
+        if (callWatch?.isActive == true) return
+        callWatch = scope.launch {
+            while (waitingForCallFlow.value) {
+                delay(1500)
+                if (waitingForCallFlow.value && !inCall()) {
+                    cancelCallWait()
+                    player.play()
+                }
+            }
+        }
+    }
+
+    private fun cancelCallWait() {
+        waitingForCallFlow.value = false
+        callWatch?.cancel()
+        callWatch = null
+        blockedFlow.value = null
+    }
 
     private val noisy = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -383,11 +440,17 @@ class ReaderController(
 
     private fun onPlayingChanged(playing: Boolean) {
         if (playing) {
-            if (audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
-                player.pause()
-                return
+            when (audio.requestAudioFocus(focusRequest)) {
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> focusHeld = true
+                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> return waitForCall()
+                else -> {
+                    if (inCall()) return waitForCall()
+                    player.pause()
+                    blockedFlow.value = "Another app is using the audio. Press Play to try again."
+                    return
+                }
             }
-            focusHeld = true
+            cancelCallWait()
             if (!noisyRegistered) {
                 ContextCompat.registerReceiver(context, noisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED)
                 noisyRegistered = true

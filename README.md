@@ -93,8 +93,11 @@ with goldens produced by the extension's own TypeScript; when the extension subm
 shows what the port must follow. The device tests read the model from `/data/local/tmp/amr-model` (same layout as
 `.model`): `adb push .model/onnx/model_quantized.onnx /data/local/tmp/amr-model/onnx/` and
 `adb push .model/voices/af_heart.bin /data/local/tmp/amr-model/voices/`. `ReaderE2ETest` opens the Wagyu field
-guide with real taps, plays at 3× (2× on the CI emulator, which is slower than a phone) and checks that the page
-highlights the spoken word with at most one stall.
+guide with real taps, plays at 3× and checks that the page highlights the spoken word with at most one stall. CI's
+emulator synthesizes slower than a phone, so it passes `rate=auto`: the fastest speed that device keeps up with.
+To run the device tests without Gradle (over wireless debugging, Gradle may restart adb and drop the connection):
+`adb install -r -t app-debug.apk`, the same for `app-debug-androidTest.apk`, then
+`adb shell am instrument -w -e rate 3 com.orexii.aimarkdownreader.test/androidx.test.runner.AndroidJUnitRunner`.
 
 CI checks the generated files, runs the JVM tests with the real model, builds and lints the app, then runs the
 device tests on an x86_64 emulator.
