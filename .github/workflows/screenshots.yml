@@ -1,5 +1,5 @@
 name: Store screenshots
-# Captures the Google Play screenshots on a 9:16 phone and a 16:10 tablet emulator (Play rejects screenshots more
+# Captures the Google Play screenshots on a 9:16 phone and a tablet emulator set to 16:9 (Play rejects screenshots more
 # than twice as tall as they are wide). Download them from the run's artifacts into play/listings/en-US/graphics.
 # The test runs through adb rather than Gradle, which would uninstall the app (and its screenshots) afterwards.
 on:
