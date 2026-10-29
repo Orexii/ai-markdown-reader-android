@@ -1,6 +1,7 @@
 name: Store screenshots
-# Captures the Google Play screenshots on a 16:9 phone and a 16:10 tablet emulator (Play rejects screenshots more
+# Captures the Google Play screenshots on a 9:16 phone and a 16:10 tablet emulator (Play rejects screenshots more
 # than twice as tall as they are wide). Download them from the run's artifacts into play/listings/en-US/graphics.
+# The test runs through adb rather than Gradle, which would uninstall the app (and its screenshots) afterwards.
 on:
   workflow_dispatch:
 permissions:
@@ -64,9 +65,12 @@ jobs:
             adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
             adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-            ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.orexii.aimarkdownreader.ScreenshotTest -Pandroid.testInstrumentationRunnerArguments.screenshots=true || true
+            adb install -r -t app/build/outputs/apk/debug/app-debug.apk
+            adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w -r -e class com.orexii.aimarkdownreader.ScreenshotTest -e screenshots true com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner | tee instrument.txt
             adb logcat -d -s ScreenshotTest TestRunner AiMarkdownReader AndroidRuntime > logcat-screenshots.txt
             mkdir -p screenshots && adb pull /sdcard/Android/data/com.orexii.aimarkdownreader.debug/files/screenshots screenshots/${{ matrix.name }}
+            grep -q "^OK (1 test)" instrument.txt
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -74,4 +78,4 @@ jobs:
           path: |
             screenshots
             logcat-screenshots.txt
-            app/build/outputs/androidTest-results
+            instrument.txt
