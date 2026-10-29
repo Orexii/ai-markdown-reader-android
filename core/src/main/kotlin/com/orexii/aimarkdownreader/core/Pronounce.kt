@@ -144,16 +144,16 @@ object Pronounce {
         return if (amount.replace(",", "") == "1") names.second else names.first
     }
 
-    private val ATTACHED = Regex("""^(\d[\d,]*(?:\.\d+)?)([A-Za-zµ°]+)\z""")
-    private val MONEY = Regex("""^([$£€])(\d[\d,]*(?:\.\d+)?)\z""")
-    private val TIME = Regex("""^(\d{1,2}):(\d{2})\z""")
-    private val YEAR = Regex("""^\d{4}s?\z""")
-    private val RANGE = Regex("""^(\d[\d,]*)[-–](\d[\d,]*)\z""")
-    private val MULTIPLIER = Regex("""^(\d+(?:\.\d+)?)[xX]\z""")
-    private val VERSION = Regex("""^[vV](\d+(?:\.\d+){0,3})\z""")
-    private val ABOUT = Regex("""^~(\d.*)\z""")
-    private val PERCENT = Regex("""^(\d[\d,]*(?:\.\d+)?)%\z""")
-    private val THOUSANDS = Regex("""^\d{1,3}(,\d{3})+(\.\d+)?\z""")
+    private val ATTACHED = Regex("""^([0-9][0-9,]*(?:\.[0-9]+)?)([A-Za-zµ°]+)\z""")
+    private val MONEY = Regex("""^([$£€])([0-9][0-9,]*(?:\.[0-9]+)?)\z""")
+    private val TIME = Regex("""^([0-9]{1,2}):([0-9]{2})\z""")
+    private val YEAR = Regex("""^[0-9]{4}s?\z""")
+    private val RANGE = Regex("""^([0-9][0-9,]*)[-–]([0-9][0-9,]*)\z""")
+    private val MULTIPLIER = Regex("""^([0-9]+(?:\.[0-9]+)?)[xX]\z""")
+    private val VERSION = Regex("""^[vV]([0-9]+(?:\.[0-9]+){0,3})\z""")
+    private val ABOUT = Regex("""^~([0-9].*)\z""")
+    private val PERCENT = Regex("""^([0-9][0-9,]*(?:\.[0-9]+)?)%\z""")
+    private val THOUSANDS = Regex("""^[0-9]{1,3}(,[0-9]{3})+(\.[0-9]+)?\z""")
 
     /** Normalizes numbers, money, times and ranges to words eSpeak pronounces naturally. */
     fun normalizeNumber(word: String): String? {
@@ -181,8 +181,8 @@ object Pronounce {
         return null
     }
 
-    private val IDENTIFIER_PART = Regex("""[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|\d+(?:\.\d+)*|[^A-Za-z\d]""")
-    private val IDENTIFIER = Regex("""[a-z][A-Z]|[A-Z]{2,}[a-z]|[A-Za-z\d][._/\\@#+=][A-Za-z\d]|^[._/]""")
+    private val IDENTIFIER_PART = Regex("""[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z]+|[A-Z]+|[0-9]+(?:\.[0-9]+)*|[^A-Za-z0-9]""")
+    private val IDENTIFIER = Regex("""[a-z][A-Z]|[A-Z]{2,}[a-z]|[A-Za-z0-9][._/\\@#+=][A-Za-z0-9]|^[._/]""")
     private val URL_START = Regex("""^https?:""", RegexOption.IGNORE_CASE)
 
     private fun identifierParts(word: String): List<String> =
@@ -201,15 +201,15 @@ object Pronounce {
         return merged
     }
 
-    private val AMOUNT_BEFORE = Regex("""(\d[\d,]*(?:\.\d+)?)\)?\z""")
+    private val AMOUNT_BEFORE = Regex("""([0-9][0-9,]*(?:\.[0-9]+)?)\)?\z""")
     private val DASH = Regex("[-–]")
     private val IPA_ENTRY = Regex("""^/(.+)/\z""")
     private val POSSESSIVE = Regex("""^([A-Z][A-Za-z]{1,5})(?:'s|’s|s)\z""")
-    private val CODED = Regex("""^([A-Z]{1,4})(\d+)\z""")
+    private val CODED = Regex("""^([A-Z]{1,4})([0-9]+)\z""")
     private val SHORTCUT = Regex("""^[A-Za-z]+(?:\+[A-Za-z]+)*\+[A-Za-z0-9←→↑↓⌘⌥⇧⏎↵]\z""")
     private val ARROW_SHORTCUT = Regex("""^(?:[A-Za-z]+\+)+[←→↑↓]\z""")
     private val LETTERS_ONLY = Regex("""^[A-Za-z]+\z""")
-    private val DIGIT_START = Regex("""^\d""")
+    private val DIGIT_START = Regex("""^[0-9]""")
 
     /**
      * Converts one display word into pronunciation segments: plain text for eSpeak, or exact phonemes for

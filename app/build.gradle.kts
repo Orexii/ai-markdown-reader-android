@@ -6,6 +6,27 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+/** Copies misaki's lexicons from the extension into the app's assets (assets/lexicon/us.json, gb.json). */
+abstract class LexiconAssets : DefaultTask() {
+    @get:InputDirectory
+    abstract val lexicon: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val target = outputDirectory.get().dir("lexicon").asFile
+        target.deleteRecursively()
+        target.mkdirs()
+        for (name in listOf("us.json", "gb.json")) lexicon.get().file(name).asFile.copyTo(target.resolve(name))
+    }
+}
+
+val lexiconAssets = tasks.register<LexiconAssets>("lexiconAssets") {
+    lexicon.set(rootProject.layout.projectDirectory.dir("extension/lexicon"))
+}
+
 android {
     namespace = "com.orexii.aimarkdownreader"
     compileSdk = 37
@@ -37,6 +58,21 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    sourceSets {
+        // Instrumented tests read the same parity goldens as the JVM tests.
+        getByName("androidTest").assets.directories.add("../core/src/test/resources")
+    }
+
+    packaging {
+        resources.excludes += listOf("META-INF/AL2.0", "META-INF/LGPL2.1", "META-INF/LICENSE*", "META-INF/NOTICE*")
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(lexiconAssets, LexiconAssets::outputDirectory)
+    }
 }
 
 kotlin {
@@ -65,6 +101,7 @@ dependencies {
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.uiautomator)
 }

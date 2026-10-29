@@ -43,15 +43,25 @@ fun toPcm16(samples: FloatArray): ShortArray = ShortArray(samples.size) { i ->
     (if (sample < 0) sample * 0x8000 else sample * 0x7fff).toInt().toShort()
 }
 
-/** The natural voice: Kokoro through [Kokoro] (lexicon, eSpeak and ONNX Runtime). */
+/**
+ * The natural voice: Kokoro through [Kokoro] (lexicon, eSpeak and ONNX Runtime). Closing waits for a running
+ * synthesis to finish, because freeing the model while it runs would crash the process.
+ */
 class NaturalEngine(private val kokoro: Kokoro, private val onClose: () -> Unit = {}) : SpeechEngine {
     override val kind = EngineKind.NATURAL
     override val batchChars = 170
+    private val lock = Any()
+    private var closed = false
 
-    override fun synthesize(utterances: List<SpeechInput>, voice: String, dictionary: Map<String, String>): List<AudioSegment> {
+    override fun synthesize(utterances: List<SpeechInput>, voice: String, dictionary: Map<String, String>): List<AudioSegment> = synchronized(lock) {
+        check(!closed) { "The natural voice was closed." }
         val request = SynthesisRequest(utterances.map { SynthesisUtterance(it.words, it.pause) }, voice, 1.0, dictionary)
-        return kokoro.synthesize(request).map { AudioSegment(toPcm16(it.samples), Kokoro.SAMPLE_RATE, it.wordTimes) }
+        kokoro.synthesize(request).map { AudioSegment(toPcm16(it.samples), Kokoro.SAMPLE_RATE, it.wordTimes) }
     }
 
-    override fun close() = onClose()
+    override fun close() = synchronized(lock) {
+        if (closed) return
+        closed = true
+        onClose()
+    }
 }

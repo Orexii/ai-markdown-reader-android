@@ -1,0 +1,114 @@
+name: Test and build
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The reader page and the parity goldens are built from the extension's TypeScript and committed.
+      - run: npm run check
+      - run: node tools/build-web.mjs --check
+      - run: node tools/goldens.mjs --check
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # Checks the committed eSpeak data and builds the host library for the native parity tests.
+      - run: tools/espeak-data.sh --check
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: .model
+          key: kokoro-compact-c0c02b3299fd-af_heart-d583ccff3cdc
+      - run: node tools/fetch-model.mjs .model compact
+      - run: ./gradlew :core:test --console=plain
+      - run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --console=plain
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-checks
+          path: |
+            core/build/reports/tests
+            app/build/reports/lint-results-debug.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-debug
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/androidTest/debug/*.apk
+
+  device:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [35]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: .model
+          key: kokoro-compact-c0c02b3299fd-af_heart-d583ccff3cdc
+      - run: node tools/fetch-model.mjs .model compact
+      - run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: google_apis
+          cores: 4
+          ram-size: 6144M
+          disk-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none -no-snapshot
+          script: |
+            adb shell mkdir -p /data/local/tmp/amr-model/onnx /data/local/tmp/amr-model/voices
+            adb push .model/onnx/model_quantized.onnx /data/local/tmp/amr-model/onnx/
+            adb push .model/voices/af_heart.bin /data/local/tmp/amr-model/voices/
+            adb shell chmod -R 755 /data/local/tmp/amr-model
+            adb logcat -c
+            ./gradlew :app:connectedDebugAndroidTest --console=plain || (adb logcat -d > logcat.txt; exit 1)
+            adb logcat -d -s AmrE2E DeviceParityTest AiMarkdownReader TestRunner > logcat-tests.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-device-${{ matrix.api-level }}
+          path: |
+            app/build/reports/androidTests
+            app/build/outputs/androidTest-results
+            logcat*.txt

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings and reading positions are backed up; the downloaded voice is not (it downloads again). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="kokoro-82m-v1.0" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="kokoro-82m-v1.0" />
+    </device-transfer>
+</data-extraction-rules>
