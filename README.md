@@ -86,6 +86,7 @@ node tools/fetch-model.mjs .model compact   # pinned test model (92 MB)
 ./gradlew :core:test                     # unit, parity, player and real-model tests on the JVM
 ./gradlew :app:assembleDebug             # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:connectedDebugAndroidTest # on a device or emulator, with the model pushed (see below)
+./gradlew :releasetest:connectedStagingAndroidTest   # the release build's first run (see below)
 ```
 
 Requires JDK 17 or later and the Android SDK (platform 37, NDK 28.2). The parity tests compare the Kotlin port
@@ -100,8 +101,14 @@ To run the device tests without Gradle (over wireless debugging, Gradle may rest
 `adb shell am instrument -w -e rate 3
 com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 
+`releasetest` tests the staging build (the release configuration, shrunk by R8) from outside, through its screen:
+it clears the staging app's data, opens the guide, downloads the natural voice, reads, checks that reading carries
+on in the background in a foreground service, and pauses it with the headset pause key. Without Gradle: install
+`app/build/outputs/apk/staging/app-staging.apk` and `releasetest/build/outputs/apk/staging/releasetest-staging.apk`,
+then `adb shell am instrument -w com.orexii.aimarkdownreader.releasetest/androidx.test.runner.AndroidJUnitRunner`.
+
 CI checks the generated files, runs the JVM tests with the real model, builds and lints the app, then runs the
-device tests on an x86_64 emulator.
+device tests and the release build test on x86_64 emulators.
 
 Building on Arm64 Linux (for example WSL on a Snapdragon laptop) works with `qemu-user-static` and amd64 libc
 (`dpkg --add-architecture amd64`) for Google's x86_64 build tools; set `cmake.dir=/usr` in `local.properties` to

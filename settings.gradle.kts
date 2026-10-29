@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "ai-markdown-reader-android"
-include(":core", ":espeak", ":app")
+include(":core", ":espeak", ":app", ":releasetest")

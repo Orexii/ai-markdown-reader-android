@@ -109,7 +109,7 @@ fun PlayerBar(
             }
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 val elapsed = scrubbing?.let { it * max(1.0, state.total) } ?: state.elapsed
-                Text(clock(elapsed), style = MaterialTheme.typography.labelSmall)
+                Text(clock(elapsed), style = MaterialTheme.typography.labelSmall, modifier = Modifier.testTag("elapsed"))
                 Text(
                     "${if (state.estimated) "~" else ""}${clock((state.total - elapsed) / state.rate)} left",
                     style = MaterialTheme.typography.labelSmall,

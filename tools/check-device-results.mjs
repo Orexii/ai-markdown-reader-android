@@ -1,12 +1,12 @@
 // Checks the device test results: AGP reports a crashed test process as a passing task, so CI reads the
 // results itself. Fails on any failure or error, or when fewer tests ran than expected.
-//   node tools/check-device-results.mjs <minimum tests run>
+//   node tools/check-device-results.mjs <minimum tests run> [module, app by default]
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const minimum = Number(process.argv[2] ?? 1);
-const folder = path.join(root, 'app', 'build', 'outputs', 'androidTest-results', 'connected');
+const folder = path.join(root, process.argv[3] ?? 'app', 'build', 'outputs', 'androidTest-results', 'connected');
 
 function files(directory) {
   try {

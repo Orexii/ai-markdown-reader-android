@@ -59,9 +59,11 @@ class NaturalEngine(private val kokoro: Kokoro, private val onClose: () -> Unit 
         kokoro.synthesize(request).map { AudioSegment(toPcm16(it.samples), Kokoro.SAMPLE_RATE, it.wordTimes) }
     }
 
-    override fun close() = synchronized(lock) {
-        if (closed) return
-        closed = true
-        onClose()
+    override fun close() {
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            onClose()
+        }
     }
 }
