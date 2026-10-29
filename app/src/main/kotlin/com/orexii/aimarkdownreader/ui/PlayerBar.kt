@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -82,7 +83,9 @@ fun PlayerBar(
         notice = null
     }
     Surface(modifier = modifier.fillMaxWidth(), tonalElevation = 3.dp, shadowElevation = 6.dp) {
-        Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp)) {
+        // On wide screens (tablets, an unfolded Fold) the controls stay together in the middle.
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = 720.dp).fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp)) {
             Text(
                 text = state.section.ifEmpty { state.title },
                 style = MaterialTheme.typography.labelLarge,
@@ -151,6 +154,7 @@ fun PlayerBar(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("status"),
                 )
             }
+        }
         }
     }
 }

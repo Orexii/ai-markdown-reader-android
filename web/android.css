@@ -48,6 +48,11 @@ a {
   color: var(--amr-link);
 }
 
+/* On wide screens the page keeps preview.css's 980px measure, centred. */
+#content {
+  margin: 0 auto;
+}
+
 /* Wide tables and code scroll sideways instead of widening the page. */
 table {
   display: block;

@@ -2,12 +2,14 @@ package com.orexii.aimarkdownreader
 
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,7 +33,12 @@ import com.orexii.aimarkdownreader.ui.PageListener
 import com.orexii.aimarkdownreader.ui.ReaderScreen
 import com.orexii.aimarkdownreader.ui.ReaderTheme
 import com.orexii.aimarkdownreader.ui.ReaderWebView
+import com.orexii.aimarkdownreader.ui.isDark
 import kotlinx.coroutines.launch
+
+/** AndroidX's default scrims for three-button navigation bars. */
+private const val NAVIGATION_SCRIM_LIGHT = 0xE6FFFFFF.toInt()
+private const val NAVIGATION_SCRIM_DARK = 0x801B1B1B.toInt()
 
 /** The app's one activity: home, folders and the reader. Opens files shared with it or opened with it. */
 class MainActivity : ComponentActivity() {
@@ -106,6 +113,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by app.settings.settings.collectAsStateWithLifecycle()
             val document by app.reader.document.collectAsStateWithLifecycle()
+            val dark = isDark(settings.theme)
+            // The status bar icons follow the app's theme, which can differ from the phone's.
+            LaunchedEffect(dark) {
+                enableEdgeToEdge(
+                    statusBarStyle = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+                    navigationBarStyle = if (dark) SystemBarStyle.dark(NAVIGATION_SCRIM_DARK) else SystemBarStyle.light(NAVIGATION_SCRIM_LIGHT, NAVIGATION_SCRIM_DARK),
+                )
+            }
             ReaderTheme(settings.theme) {
                 when (val current = screen) {
                     is Screen.Home -> HomeScreen(

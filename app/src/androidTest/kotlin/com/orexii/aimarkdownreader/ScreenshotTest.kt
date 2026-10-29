@@ -71,12 +71,15 @@ class ScreenshotTest {
                 // Start in the Quick facts table, which shows the row and cell highlighting.
                 val doc = DeviceFixtures.documents.getValue("wagyu-rows-announce")
                 val table = doc.blocks.indexOfFirst { it.kind == "table" }
-                app.reader.player.seek(doc.blocks[table].first + 2, 0.0, play = true)
-                waitFor("a highlighted word in the table", 90_000) { app.reader.state.value.word >= 2 && !app.reader.state.value.waiting }
+                val row = doc.blocks[table].first + 2
+                app.reader.player.seek(row, 0.0, play = true)
+                waitFor("a highlighted word in the table", 90_000) { app.reader.state.value.let { it.index == row && it.playing && !it.waiting && it.word >= 2 } }
                 Thread.sleep(1500)
                 shot("1-reading-table")
+                val section = (com.orexii.aimarkdownreader.core.Navigation.nextSection(doc.blocks, app.reader.state.value.index) as com.orexii.aimarkdownreader.core.Navigation.Move.To).index
                 app.reader.command("nextSection")
-                waitFor("a highlighted word in the next section", 60_000) { app.reader.state.value.word >= 3 }
+                // The heading, then into its first paragraph.
+                waitFor("reading the next section", 90_000) { app.reader.state.value.let { it.index > section && it.playing && !it.waiting && it.word >= 3 } }
                 Thread.sleep(1500)
                 shot("2-reading-text")
                 app.reader.player.pause()
@@ -89,7 +92,7 @@ class ScreenshotTest {
                 device.pressBack()
                 settings { it.copy(theme = ThemeChoice.DARK) }
                 app.reader.player.play()
-                waitFor("reading in the dark theme", 60_000) { app.reader.state.value.playing && app.reader.state.value.word >= 1 }
+                waitFor("reading in the dark theme", 60_000) { app.reader.state.value.let { it.playing && !it.waiting && it.word >= 1 } }
                 Thread.sleep(2000)
                 shot("5-dark")
                 app.reader.player.pause()
