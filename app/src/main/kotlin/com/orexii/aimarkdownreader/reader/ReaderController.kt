@@ -1,6 +1,5 @@
 package com.orexii.aimarkdownreader.reader
 
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -8,7 +7,6 @@ import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.os.Build
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -96,13 +94,7 @@ class ReaderController(
     private var engineKey = ""
     private var loadJob: Job? = null
     private var appliedSettings: ReaderSettings = settings.settings.value
-
-    init {
-        scope.launch { settings.settings.collect(::applySettings) }
-        scope.launch { models.changes.collect { if (voiceFlow.value == VoiceState.NeedsDownload || voiceFlow.value is VoiceState.Failed) ensureVoice() } }
-        scope.launch { player.state.map { it.playing }.distinctUntilChanged().collect(::onPlayingChanged) }
-        scope.launch { savePositions() }
-    }
+    private var pendingKey = ""
 
     val state: StateFlow<PlayerState> get() = player.state
 
@@ -132,6 +124,8 @@ class ReaderController(
         val document = documentFlow.value ?: return
         val previous = narration
         val state = player.state.value
+        // The same narration again (the page was recreated): keep reading without a pause.
+        if (!isSelection && !selection && !rebuilding && doc == previous && state.loaded) return
         narration = doc
         if (doc.utterances.isEmpty()) {
             player.unload()
@@ -318,8 +312,6 @@ class ReaderController(
         }
     }
 
-    private var pendingKey = ""
-
     private fun replaceEngine(next: SpeechEngine?, key: String, state: VoiceState) {
         val old = engine
         val s = settings.settings.value
@@ -354,7 +346,8 @@ class ReaderController(
 
     private val audio = context.getSystemService(AudioManager::class.java)
     private var resumeOnFocus = false
-    private val focusRequest: AudioFocusRequest? = if (Build.VERSION.SDK_INT >= 26) {
+    private var focusHeld = false
+    private val focusRequest: AudioFocusRequest =
         AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
             .setWillPauseWhenDucked(true)
@@ -377,7 +370,6 @@ class ReaderController(
                 }
             }
             .build()
-    } else null
 
     private val noisy = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -386,35 +378,48 @@ class ReaderController(
     }
     private var noisyRegistered = false
 
-    @SuppressLint("WakelockTimeout")
     private val wakeLock = context.getSystemService(PowerManager::class.java)
         .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AiMarkdownReader:reading").apply { setReferenceCounted(false) }
 
     private fun onPlayingChanged(playing: Boolean) {
         if (playing) {
-            if (focusRequest != null && audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
+            if (audio.requestAudioFocus(focusRequest) == AudioManager.AUDIOFOCUS_REQUEST_FAILED) {
                 player.pause()
                 return
             }
+            focusHeld = true
             if (!noisyRegistered) {
                 ContextCompat.registerReceiver(context, noisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), ContextCompat.RECEIVER_NOT_EXPORTED)
                 noisyRegistered = true
             }
-            wakeLock.acquire()
+            // Released on pause; the timeout only guards against a lost release.
+            wakeLock.acquire(6 * 60 * 60 * 1000L)
         } else {
             if (noisyRegistered) {
                 context.unregisterReceiver(noisy)
                 noisyRegistered = false
             }
             if (wakeLock.isHeld) wakeLock.release()
-            if (!resumeOnFocus && focusRequest != null) {
+            if (focusHeld && !resumeOnFocus) {
                 // Give the focus back after a short while, so a quick pause and play keeps it.
                 scope.launch {
                     delay(30_000)
-                    if (!player.state.value.playing && !resumeOnFocus) audio.abandonAudioFocusRequest(focusRequest)
+                    if (focusHeld && !player.state.value.playing && !resumeOnFocus) {
+                        audio.abandonAudioFocusRequest(focusRequest)
+                        focusHeld = false
+                    }
                 }
             }
         }
+    }
+
+    // Last, after every property: the app's scope runs on Dispatchers.Main.immediate, so these collectors start at
+    // once, inside the constructor, and onPlayingChanged uses the audio properties above.
+    init {
+        scope.launch { settings.settings.collect(::applySettings) }
+        scope.launch { models.changes.collect { if (voiceFlow.value == VoiceState.NeedsDownload || voiceFlow.value is VoiceState.Failed) ensureVoice() } }
+        scope.launch { player.state.map { it.playing }.distinctUntilChanged().collect(::onPlayingChanged) }
+        scope.launch { savePositions() }
     }
 
     companion object {

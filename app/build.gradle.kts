@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -27,6 +28,21 @@ val lexiconAssets = tasks.register<LexiconAssets>("lexiconAssets") {
     lexicon.set(rootProject.layout.projectDirectory.dir("extension/lexicon"))
 }
 
+/**
+ * The upload key for Google Play: from keystore.properties (not committed) or, in CI, from the environment
+ * (AMR_KEYSTORE_FILE, AMR_KEYSTORE_PASSWORD, AMR_KEY_ALIAS, AMR_KEY_PASSWORD). Unsigned when neither is there.
+ */
+val signing: Map<String, String> = run {
+    val file = rootProject.file("keystore.properties")
+    if (file.isFile) {
+        val properties = Properties().apply { file.inputStream().use(::load) }
+        properties.stringPropertyNames().associateWith { properties.getProperty(it) }
+    } else {
+        listOf("AMR_KEYSTORE_FILE", "AMR_KEYSTORE_PASSWORD", "AMR_KEY_ALIAS", "AMR_KEY_PASSWORD")
+            .mapNotNull { name -> System.getenv(name)?.takeIf { it.isNotEmpty() }?.let { name to it } }.toMap()
+    }
+}
+
 android {
     namespace = "com.orexii.aimarkdownreader"
     compileSdk = 37
@@ -35,8 +51,8 @@ android {
         applicationId = "com.orexii.aimarkdownreader"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.gradleProperty("amr.versionCode").get().toInt()
+        versionName = providers.gradleProperty("amr.versionName").get()
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -46,8 +62,20 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (signing.size == 4) {
+            create("upload") {
+                storeFile = rootProject.file(signing.getValue("AMR_KEYSTORE_FILE"))
+                storePassword = signing.getValue("AMR_KEYSTORE_PASSWORD")
+                keyAlias = signing.getValue("AMR_KEY_ALIAS")
+                keyPassword = signing.getValue("AMR_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (signing.size == 4) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -102,8 +102,11 @@ jobs:
             adb push .model/voices/af_heart.bin /data/local/tmp/amr-model/voices/
             adb shell chmod -R 755 /data/local/tmp/amr-model
             adb logcat -c
-            ./gradlew :app:connectedDebugAndroidTest --console=plain || (adb logcat -d > logcat.txt; exit 1)
-            adb logcat -d -s AmrE2E DeviceParityTest AiMarkdownReader TestRunner > logcat-tests.txt || true
+            ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.rate=2 || touch device-tests-failed
+            adb logcat -d > logcat.txt
+            adb logcat -d -s AmrE2E DeviceParityTest AiMarkdownReader TestRunner AndroidRuntime > logcat-tests.txt
+            node tools/check-device-results.mjs 6
+            test ! -f device-tests-failed
       - if: always()
         uses: actions/upload-artifact@v4
         with:

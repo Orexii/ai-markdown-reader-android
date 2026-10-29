@@ -1,0 +1,25 @@
+Listen to Markdown notes, READMEs and documentation with a natural AI voice that runs entirely on your phone. The rendered page highlights each sentence, and the word being spoken, and scrolls along with the voice.
+
+AI Markdown Reader reads documents the way a person would:
+• Tables say how many rows and which columns they have, then read each row with its column names, or column by column.
+• Lists flow as sentences. Numbered steps keep their numbers, and task items say whether they are done.
+• Code blocks are announced with their language and length, or read line by line, or skipped.
+• Headings, quotes and callouts get natural pauses and a short cue.
+• Links read their text, bare web addresses just the site name, and images their description.
+• Technical text sounds right: acronyms such as IcM or JSON, identifiers such as DataHarborConfig, money, times, years, versions, units and keyboard shortcuts.
+• Add your own words, for names or jargon, with a simple pronunciation list.
+
+Listening controls like a podcast app:
+• Back 10 seconds and forward 30, previous and next paragraph, a progress bar with chapter marks and the time left.
+• Speeds of 0.5×, 1×, 1.5× and 2×, or every quarter step from 0.25× to 5×, with natural pitch.
+• Double-tap any word to read from there, or select text and read just that.
+• Keeps reading with the screen off. Control it from the notification, the lock screen, your watch or car, and Bluetooth headphones (previous and next skip by paragraph).
+• Picks up where you stopped, in every document.
+
+The natural voice is Kokoro-82M, an open neural text-to-speech model, with 28 American and British voices. It is a one-time download (92 MB, or 326 MB for the best quality). After that it works offline, and your documents never leave your phone. You can also use your phone's own text-to-speech voice without any download.
+
+Open Markdown files from your phone, a folder of notes (images and links between files then work too), or straight from other apps with Open with or Share. Light and dark themes, and it fits both screens of a foldable.
+
+Private by design: no account, no ads, no analytics and no tracking.
+
+AI Markdown Reader is also a VS Code extension (AI Markdown Reader - Read Aloud on the Visual Studio Marketplace). The app is open source: github.com/Orexii/ai-markdown-reader-android

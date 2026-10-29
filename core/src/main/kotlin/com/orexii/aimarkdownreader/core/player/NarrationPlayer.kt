@@ -110,11 +110,11 @@ class NarrationPlayer(
     private var endWritten = false
     private var sinkRate = 0
     private var sinkPlaying = false
+    private var currentGeneration: Any? = null
 
     private val thread = Thread(::loop, "narration-audio").apply {
         priority = Thread.MAX_PRIORITY
         isDaemon = true
-        start()
     }
 
     // Commands, callable from any thread.
@@ -383,8 +383,6 @@ class NarrationPlayer(
         )
     }
 
-    private var currentGeneration: Any? = null
-
     private fun onSegment(i: Int, segment: AudioSegment) {
         val old = segments.put(i, segment)
         if (old != null) segmentBytes -= old.bytes
@@ -584,5 +582,10 @@ class NarrationPlayer(
             stalls = stalls,
         )
         if (next != stateFlow.value) stateFlow.value = next
+    }
+
+    // Last, so the audio thread only starts once every property above is initialized.
+    init {
+        thread.start()
     }
 }

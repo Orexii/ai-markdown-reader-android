@@ -1,0 +1,72 @@
+name: Store screenshots
+# Captures the Google Play screenshots on a 16:9 phone and a 16:10 tablet emulator (Play rejects screenshots more
+# than twice as tall as they are wide). Download them from the run's artifacts into play/listings/en-US/graphics.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: phone
+            profile: Nexus 5X
+          - name: tablet
+            profile: pixel_tablet
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: .model
+          key: kokoro-compact-c0c02b3299fd-af_heart-d583ccff3cdc
+      - run: node tools/fetch-model.mjs .model compact
+      - run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: ${{ matrix.profile }}
+          cores: 4
+          ram-size: 6144M
+          disk-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none -no-snapshot
+          script: |
+            adb shell mkdir -p /data/local/tmp/amr-model/onnx /data/local/tmp/amr-model/voices
+            adb push .model/onnx/model_quantized.onnx /data/local/tmp/amr-model/onnx/
+            adb push .model/voices/af_heart.bin /data/local/tmp/amr-model/voices/
+            adb shell chmod -R 755 /data/local/tmp/amr-model
+            adb shell settings put global sysui_demo_allowed 1
+            adb shell am broadcast -a com.android.systemui.demo -e command enter
+            adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0930
+            adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
+            adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
+            adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
+            ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.orexii.aimarkdownreader.ScreenshotTest -Pandroid.testInstrumentationRunnerArguments.screenshots=true
+            mkdir -p screenshots && adb pull /sdcard/Android/data/com.orexii.aimarkdownreader/files/screenshots screenshots/${{ matrix.name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.name }}
+          path: screenshots

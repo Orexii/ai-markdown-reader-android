@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 /** The app's one activity: home, folders and the reader. Opens files shared with it or opened with it. */
 class MainActivity : ComponentActivity() {
     private val app get() = application as App
-    private lateinit var webView: ReaderWebView
+    private var webView by mutableStateOf<ReaderWebView?>(null)
     private var controller: ListenableFuture<MediaController>? = null
 
     private sealed interface Screen {
@@ -70,6 +70,15 @@ class MainActivity : ComponentActivity() {
             app.reader.pageState.value = PageState(sentence, word, following)
         }
 
+        override fun onRenderGone() {
+            // Replace the page; the reader screen opens the document in the new one and reading continues.
+            webView?.let { old ->
+                (old.parent as? ViewGroup)?.removeView(old)
+                old.destroy()
+            }
+            webView = ReaderWebView(this@MainActivity, this)
+        }
+
         override fun onLink(href: String) {
             if (Regex("^(https?|mailto|tel):", RegexOption.IGNORE_CASE).containsMatchIn(href)) {
                 ReaderWebView.openExternal(this@MainActivity, href)
@@ -89,8 +98,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         webView = ReaderWebView(this, listener)
         if (app.reader.document.value != null) screen = Screen.Reader(Screen.Home)
         if (savedInstanceState == null) handle(intent)
@@ -124,7 +133,7 @@ class MainActivity : ComponentActivity() {
                             LaunchedEffect(Unit) { screen = current.back }
                         } else {
                             BackHandler { leaveReader(current.back) }
-                            ReaderScreen(app.reader, open, webView, onBack = { leaveReader(current.back) })
+                            webView?.let { page -> ReaderScreen(app.reader, open, page, onBack = { leaveReader(current.back) }) }
                         }
                     }
                 }
@@ -196,8 +205,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        (webView.parent as? ViewGroup)?.removeView(webView)
-        webView.destroy()
+        webView?.let { page ->
+            (page.parent as? ViewGroup)?.removeView(page)
+            page.destroy()
+        }
+        webView = null
         super.onDestroy()
     }
 }

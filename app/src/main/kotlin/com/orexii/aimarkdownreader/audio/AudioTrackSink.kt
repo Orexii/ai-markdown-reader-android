@@ -4,7 +4,6 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTimestamp
 import android.media.AudioTrack
-import android.os.Build
 import com.orexii.aimarkdownreader.core.player.PcmSink
 
 /**
@@ -17,7 +16,6 @@ class AudioTrackSink : PcmSink {
     private var rate = 0
     private var written = 0L
     private var playing = false
-    private var underrunBase = 0
     private var underrunsBefore = 0
     private val timestamp = AudioTimestamp()
 
@@ -39,7 +37,6 @@ class AudioTrackSink : PcmSink {
             .build()
         written = 0
         playing = false
-        underrunBase = 0
     }
 
     override fun write(pcm: ShortArray, offset: Int, length: Int): Int {
@@ -88,7 +85,7 @@ class AudioTrackSink : PcmSink {
         playing = false
     }
 
-    private fun underrunsOf(track: AudioTrack): Int = if (Build.VERSION.SDK_INT >= 24) track.underrunCount else 0
+    private fun underrunsOf(track: AudioTrack): Int = track.underrunCount
 
     override fun underruns(): Int = underrunsBefore + (track?.let(::underrunsOf) ?: 0)
 }

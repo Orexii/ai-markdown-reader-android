@@ -32,6 +32,8 @@ interface PageListener {
     fun onCommand(action: String)
     fun onLink(href: String)
     fun onState(sentence: String, word: String, following: Boolean)
+    /** The page's renderer stopped (Android may end it to free memory); the view must be replaced. */
+    fun onRenderGone()
 }
 
 /**
@@ -66,6 +68,11 @@ class ReaderWebView(context: Context, private val listener: PageListener) : WebV
 
             // The page never navigates; links are handled by preview.js and the app.
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = true
+
+            override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+                listener.onRenderGone()
+                return true
+            }
         }
         loadUrl(PAGE)
     }

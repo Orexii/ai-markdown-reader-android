@@ -117,7 +117,14 @@ fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: Read
             }
         },
     ) { padding ->
-        AndroidView(factory = { webView }, modifier = Modifier.padding(padding).fillMaxSize().testTag("page"))
+        // The page outlives this screen (reading goes on), so take it from its previous place first.
+        AndroidView(
+            factory = {
+                (webView.parent as? android.view.ViewGroup)?.removeView(webView)
+                webView
+            },
+            modifier = Modifier.padding(padding).fillMaxSize().testTag("page"),
+        )
     }
     if (showSettings) {
         ModalBottomSheet(onDismissRequest = { showSettings = false }) {

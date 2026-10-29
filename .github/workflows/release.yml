@@ -1,0 +1,89 @@
+name: Release
+# Publishing a GitHub release (tag v<version>, matching amr.versionName) builds the signed app bundle for Google
+# Play and the APK for direct download, and attaches both with their SHA-256. When the PLAY_SERVICE_ACCOUNT_JSON
+# secret is set, the bundle is also uploaded to the Google Play track in the PLAY_TRACK variable (internal by
+# default). See README.md, Releasing.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach to (for example v0.1.0)
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.repository_owner == 'Orexii'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node tools/build-web.mjs --check && node tools/goldens.mjs --check
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: tools/espeak-data.sh --check
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check the tag matches the version
+        run: |
+          version=$(grep '^amr.versionName=' gradle.properties | cut -d= -f2)
+          test "v$version" = "$TAG" || { echo "Tag $TAG does not match amr.versionName=$version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Upload key
+        env:
+          AMR_KEYSTORE_BASE64: ${{ secrets.AMR_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$AMR_KEYSTORE_BASE64" || { echo "The AMR_KEYSTORE_BASE64 secret is missing."; exit 1; }
+          echo "$AMR_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+      - run: ./gradlew :core:test :app:bundleRelease :app:assembleRelease --console=plain
+        env:
+          AMR_KEYSTORE_FILE: ${{ runner.temp }}/upload.jks
+          AMR_KEYSTORE_PASSWORD: ${{ secrets.AMR_KEYSTORE_PASSWORD }}
+          AMR_KEY_ALIAS: ${{ secrets.AMR_KEY_ALIAS }}
+          AMR_KEY_PASSWORD: ${{ secrets.AMR_KEY_PASSWORD }}
+      - name: Collect the release files
+        run: |
+          mkdir -p releases
+          cp app/build/outputs/bundle/release/app-release.aab "releases/ai-markdown-reader-$VERSION.aab"
+          cp app/build/outputs/apk/release/app-release.apk "releases/ai-markdown-reader-$VERSION.apk"
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "releases/ai-markdown-reader-$VERSION.apk" | head -3
+          (cd releases && sha256sum *.aab *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          node tools/whats-new.mjs "$VERSION" > releases/whatsnew-en-US
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" releases/*.aab releases/*.apk releases/SHA256SUMS.txt --clobber
+      - name: Prepare the Google Play upload
+        id: play
+        env:
+          PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$PLAY" ]; then echo "upload=true" >> "$GITHUB_OUTPUT"; else echo "No PLAY_SERVICE_ACCOUNT_JSON secret: upload the bundle in Play Console."; fi
+          mkdir -p whatsnew && cp releases/whatsnew-en-US whatsnew/
+      - if: steps.play.outputs.upload == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.orexii.aimarkdownreader
+          releaseFiles: releases/ai-markdown-reader-${{ env.VERSION }}.aab
+          track: ${{ vars.PLAY_TRACK || 'internal' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+          whatsNewDirectory: whatsnew
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
