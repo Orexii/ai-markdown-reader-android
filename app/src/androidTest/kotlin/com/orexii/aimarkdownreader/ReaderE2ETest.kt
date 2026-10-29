@@ -98,7 +98,8 @@ class ReaderE2ETest {
         val threads = if (argument == "auto") Runtime.getRuntime().availableProcessors() else 0
         val rate = if (argument == "auto") {
             val speed = measureSpeed(app, threads)
-            (Math.round(speed / 1.5 * 4) / 4.0).coerceIn(0.25, 3.0).also { Log.i(TAG, "Synthesis runs at %.1f× real time here; testing at $it×".format(speed)) }
+            // The measurement runs alone; while reading, the page and the player share the processor too.
+            (Math.round(speed / 2.5 * 4) / 4.0).coerceIn(0.25, 3.0).also { Log.i(TAG, "Synthesis runs at %.1f× real time here; testing at $it×".format(speed)) }
         } else argument.toDouble()
         runBlocking {
             withContext(Dispatchers.Main) {

@@ -1,6 +1,5 @@
 package com.orexii.aimarkdownreader
 
-import android.graphics.Bitmap
 import android.util.Log
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -29,13 +28,15 @@ import java.io.File
 class ScreenshotTest {
     private val device = UiDevice.getInstance(DeviceFixtures.instrumentation)
     private val app get() = DeviceFixtures.app.applicationContext as App
-    private val folder get() = File(DeviceFixtures.app.getExternalFilesDir(null), "screenshots").apply { mkdirs() }
+    private val folder: File by lazy {
+        File(DeviceFixtures.app.getExternalFilesDir(null), "screenshots").apply { deleteRecursively(); mkdirs() }
+    }
 
     private fun shot(name: String) {
         Thread.sleep(700)
-        val bitmap = DeviceFixtures.instrumentation.uiAutomation.takeScreenshot() ?: return
-        File(folder, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        Log.i("ScreenshotTest", "Saved $name (${bitmap.width}×${bitmap.height})")
+        val file = File(folder, "$name.png")
+        check(device.takeScreenshot(file) && file.length() > 0) { "Could not save the screenshot $name" }
+        Log.i("ScreenshotTest", "Saved $file (${file.length() / 1024} KB)")
     }
 
     private fun waitFor(timeoutMs: Long, check: () -> Boolean) {

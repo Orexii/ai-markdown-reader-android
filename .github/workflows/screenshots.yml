@@ -64,9 +64,14 @@ jobs:
             adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
             adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-            ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.orexii.aimarkdownreader.ScreenshotTest -Pandroid.testInstrumentationRunnerArguments.screenshots=true
+            ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.orexii.aimarkdownreader.ScreenshotTest -Pandroid.testInstrumentationRunnerArguments.screenshots=true || true
+            adb logcat -d -s ScreenshotTest TestRunner AiMarkdownReader AndroidRuntime > logcat-screenshots.txt
             mkdir -p screenshots && adb pull /sdcard/Android/data/com.orexii.aimarkdownreader.debug/files/screenshots screenshots/${{ matrix.name }}
-      - uses: actions/upload-artifact@v4
+      - if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots-${{ matrix.name }}
-          path: screenshots
+          path: |
+            screenshots
+            logcat-screenshots.txt
+            app/build/outputs/androidTest-results
