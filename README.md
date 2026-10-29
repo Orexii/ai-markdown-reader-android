@@ -33,24 +33,24 @@ the last few years read faster than real time; you can also use the phone's own 
 
 | Player | Action |
 | --- | --- |
-| \|◀ ▶\| | Previous / next paragraph (previous goes to the start of this one first) |
+| \|◀ ▶\| | Previous / next paragraph, and in a table one row at a time (previous goes to the start of this one first) |
 | ↺ 10 / 30 ↻ | Back 10 / forward 30 seconds |
 | 1× | Speed: 0.5×, 1×, 1.5×, 2×; **More speeds…** offers every quarter step from 0.25× to 5× |
 | ⚙ | Voice, tables, code blocks, word highlighting, following, more speeds, skip lengths, pronunciations, theme |
 
 With a keyboard (a Fold with a keyboard case, a tablet, a Chromebook), the extension's keys work in the page:
-← / → paragraph, Shift+← / Shift+→ sentence, Shift+↑ / Shift+↓ section, Ctrl+← / Ctrl+→ or J / L skip, K play or
-pause, - / + speed.
+← / → paragraph (in a table, row by row), Shift+← / Shift+→ sentence, Shift+↑ / Shift+↓ section, Ctrl+← / Ctrl+→ or
+J / L skip, K play or pause, - / + speed.
 
 ## How documents are read
 
 As in the extension: lists read as sentences, numbered steps keep their numbers and task items say whether they
 are completed; tables say how many rows and which columns they have, then read each row with its column names (or
-column by column); code blocks are announced with their language and length (or read line by line, or skipped);
-headings, quotes and callouts get natural pauses and a short cue; links read their text, bare URLs just the site
-name, and images their description; acronyms are spelled, identifiers split, and money, times, years, ranges,
-versions, units and keyboard shortcuts normalized. Add your own words under **Pronunciations**, for example
-`Kusto` → `kuss toe`, or IPA between slashes such as `/ɹɑːkˈiːm/`.
+column by column), and |◀ ▶| move one row at a time; code blocks are announced with their language and length (or
+read line by line, or skipped); headings, quotes and callouts get natural pauses and a short cue; links read their
+text, bare URLs just the site name, and images their description; acronyms are spelled, identifiers split, and
+money, times, years, ranges, versions, units and keyboard shortcuts normalized. Add your own words under
+**Pronunciations**, for example `Kusto` → `kuss toe`, or IPA between slashes such as `/ɹɑːkˈiːm/`.
 
 ## Voices
 
@@ -97,7 +97,8 @@ guide with real taps, plays at 3× and checks that the page highlights the spoke
 emulator synthesizes slower than a phone, so it passes `rate=auto`: the fastest speed that device keeps up with.
 To run the device tests without Gradle (over wireless debugging, Gradle may restart adb and drop the connection):
 `adb install -r -t app-debug.apk`, the same for `app-debug-androidTest.apk`, then
-`adb shell am instrument -w -e rate 3 com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner`.
+`adb shell am instrument -w -e rate 3
+com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 
 CI checks the generated files, runs the JVM tests with the real model, builds and lints the app, then runs the
 device tests on an x86_64 emulator.

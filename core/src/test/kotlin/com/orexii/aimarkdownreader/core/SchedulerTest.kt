@@ -128,12 +128,28 @@ class NavigationTest {
     private val blocks = doc.blocks
 
     @Test
-    fun nextParagraphSkipsTheRestOfTheBlockAndStopsAtTheEnd() {
+    fun nextParagraphMovesThroughATableOneRowAtATime() {
         val tableBlock = blocks.indexOfFirst { it.kind == "table" }
-        val first = blocks[tableBlock].first
-        val move = Navigation.nextParagraph(utterances, first) as Navigation.Move.To
-        assertTrue("a table counts as one paragraph", utterances[move.index].block != tableBlock)
+        val intro = blocks[tableBlock].first
+        val firstRow = (Navigation.nextParagraph(utterances, intro) as Navigation.Move.To).index
+        assertEquals("from the introduction to the first row", tableBlock, utterances[firstRow].block)
+        assertEquals(1, utterances[firstRow].part)
+        val secondRow = (Navigation.nextParagraph(utterances, firstRow) as Navigation.Move.To).index
+        assertEquals(2, utterances[secondRow].part)
+        assertEquals(Navigation.Move.To(firstRow), Navigation.previousParagraph(utterances, secondRow, 0.0))
         assertEquals(Navigation.Move.End("This is the last paragraph"), Navigation.nextParagraph(utterances, utterances.size - 1))
+    }
+
+    @Test
+    fun aLongTableRowReadInPartsIsOneStop() {
+        // The extension's test/document.test.ts: a paragraph, the table introduction, each row, the next paragraph.
+        val doc = Goldens.documents.getValue("table-stops").utterances
+        assertEquals(listOf("0:0", "1:0", "1:1", "1:2", "2:0"), doc.map { "${it.block}:${it.part}" }.distinct())
+        val longRow = doc.indices.filter { doc[it].block == 1 && doc[it].part == 1 }
+        assertTrue("the long row is read in parts", longRow.size > 1)
+        val next = (Navigation.nextParagraph(doc, longRow.first()) as Navigation.Move.To).index
+        assertEquals("→ skips the rest of the long row", 2, doc[next].part)
+        assertEquals("← from inside the row goes to its start", Navigation.Move.To(longRow.first()), Navigation.previousParagraph(doc, longRow.last(), 0.0))
     }
 
     @Test

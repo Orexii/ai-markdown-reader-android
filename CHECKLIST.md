@@ -18,8 +18,9 @@ you should hear. On a foldable, do sections 1 to 3 on both screens.
 
 ## 2. Buttons and speed
 
-- [ ] ▶| goes to the next paragraph; in the Quick facts table it skips the whole table. |◀ goes to the start of this
-  paragraph, then (tapped again) the one before. At the last paragraph, ▶| says "This is the last paragraph".
+- [ ] ▶| goes to the next paragraph; in the Quick facts table it goes to the table's introduction first, then one row
+  at a time. |◀ goes to the start of this paragraph or row, then (tapped again) the one before. At the last
+  paragraph, ▶| says "This is the last paragraph".
 - [ ] ↺ 10 and 30 ↻ skip by seconds. Dragging the progress bar moves the reading there.
 - [ ] The speed menu offers 0.5×, 1×, 1.5× and 2×. **More speeds…** lists every quarter step from 0.25× to 5×, and
   **Fewer speeds** goes back. The pitch stays natural at every speed.
@@ -56,7 +57,8 @@ you should hear. On a foldable, do sections 1 to 3 on both screens.
 - [ ] The Contents links scroll to each section; the Wikipedia link opens the browser; **the short demo** opens
   `demo.md` in the app.
 - [ ] Table rows and code blocks are highlighted as a whole while they are read; wide tables scroll sideways.
-- [ ] With a keyboard: → and Shift+→ move by paragraph and sentence, Shift+↓ by section, K plays and pauses.
+- [ ] With a keyboard: → and Shift+→ move by paragraph (in the table, by row) and sentence, Shift+↓ by section, K plays
+  and pauses.
 
 ## 6. Settings
 

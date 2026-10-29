@@ -23,6 +23,11 @@ data class SpokenWord(
 @Serializable
 data class Utterance(
     val block: Int,
+    /**
+     * Which stop within its block this belongs to when moving by paragraph: a table's introduction and each of
+     * its rows (or columns, when reading by column) are separate stops; other blocks are one stop.
+     */
+    val part: Int = 0,
     val words: List<SpokenWord>,
     val range: SourceRange? = null,
     /** Total silence after this utterance, in seconds at 1×. */

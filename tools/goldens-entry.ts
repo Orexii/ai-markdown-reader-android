@@ -11,10 +11,9 @@ import { DEFAULT_VOICE, MODELS, MODEL_FOLDER, MODEL_REPOSITORY, MODEL_REVISION, 
 import { Lexicon, type LexiconData } from '../extension/src/engine/lexicon';
 import { dictionaryFrom, pronounce, pronounceAsText, type Accent } from '../extension/src/engine/pronounce';
 
-/** Words whose lookups reach Object.prototype in the TypeScript tables; the Kotlin port deliberately differs. */
-const PROTOTYPE_WORDS = new Set(Object.getOwnPropertyNames(Object.prototype));
-
 const EXTRA_WORDS = [
+  // Names of built-in object properties (extension 0.8.3).
+  ...Object.getOwnPropertyNames(Object.prototype), 'Ctrl+constructor',
   '8kg', '8–11', 'kg', '100%', '$12.50', '£3.01', '€1', '$1', '3:05', '12:00', '1999', '2000s', '1066', '2010', 'v2.4.1', 'V3',
   '~5', '3x', '1,234,567', '1,234.5', '10-20', '0.5', '42', 'IcM', 'ANFObservabilityDB', 'DataHarborConfig', 'IoT', 'JSON', 'JSONL',
   'HTTPS', 'URLs', 'APIs', "VM's", 'VMs', 'EC2', 'S3', 'M365', 'Ctrl+Shift+→', 'Shift+←', 'Cmd+K', 'Ctrl+Alt+P', 'e.g.', 'i.e.',
@@ -77,6 +76,8 @@ export async function generate(root: string): Promise<Record<string, unknown>> {
       'Another reasonably long paragraph that follows the tiny one and keeps the reader company for a while.',
       'Yet another paragraph, so that prefetching has something more to do after the first requests are done.'
     ].join('\n\n')),
+    // Table rows are paragraph stops (extension 0.8.2).
+    'table-stops': buildDocument(`First sentence. Second sentence.\n\n| # | Plan |\n| --- | --- |\n| 1 | ${Array.from({ length: 6 }, (_, k) => `step ${k + 1} explains what happens next and who owns the follow-up work`).join('; ')} |\n| 2 | Short. |\n\nAfter.`),
     'scheduler-long': buildDocument(Array.from({ length: 12 }, (_, i) => `Sentence number ${i + 1} is a reasonably long sentence for testing batches.`).join(' '))
   };
 
@@ -85,7 +86,6 @@ export async function generate(root: string): Promise<Record<string, unknown>> {
   const pronounceCases: unknown[] = [];
   const seen = new Set<string>();
   const addPronounce = (word: string, previous: string | undefined, accent: Accent, withDictionary: boolean) => {
-    if (PROTOTYPE_WORDS.has(word.trim()) || (previous && PROTOTYPE_WORDS.has(previous.trim()))) return;
     const key = JSON.stringify([word, previous ?? null, accent, withDictionary]);
     if (seen.has(key)) return;
     seen.add(key);
@@ -135,7 +135,7 @@ export async function generate(root: string): Promise<Record<string, unknown>> {
       for (const utterance of documents[name]!.utterances) for (const word of utterance.words) words.add(word.text.replace(/[^\p{L}']/gu, ''));
     }
     for (const word of words) {
-      if (!word || PROTOTYPE_WORDS.has(word)) continue;
+      if (!word) continue;
       for (const nextVowel of [true, false, null]) {
         for (const nextIsTo of nextVowel === false ? [false, true] : [false]) {
           // [word, accent, nextVowel, nextIsTo, phonemes or null], compact because there are many.
@@ -188,7 +188,7 @@ export async function generate(root: string): Promise<Record<string, unknown>> {
     };
     const inputs = (doc: ReaderDocument) => doc.utterances.map(u => ({ words: u.words.map(w => ({ text: w.text, sep: w.sep })), pause: u.pauseAfter }));
     for (const [name, voice, limit] of [['wagyu-rows-announce', 'af_heart', 999], ['wagyu-columns-read', 'af_heart', 999], ['demo', 'af_heart', 999], ['wagyu-rows-announce', 'bf_emma', 60]] as const) {
-      const utterances = inputs(documents[name]!).filter(u => !u.words.some(w => PROTOTYPE_WORDS.has(w.text))).slice(0, limit);
+      const utterances = inputs(documents[name]!).slice(0, limit);
       for (const utterance of utterances) await run({ voice, utterances: [utterance] });
       // Batches as the scheduler makes them when it is not in a hurry: up to 170 spoken characters.
       for (let i = 0; i < utterances.length;) {
@@ -210,6 +210,7 @@ export async function generate(root: string): Promise<Record<string, unknown>> {
     salad.at(-1)!.sep = '.';
     await run({ voice: 'af_heart', utterances: [{ words: salad, pause: 0.6 }] });
     await run({ voice: 'af_heart', utterances: [{ words: [{ text: 'Kusto', sep: ' ' }, { text: 'Rakeem', sep: ' ' }, { text: 'Wagyu', sep: '.' }], pause: 0.3 }], dictionary: [...dictionary] });
+    await run({ voice: 'af_heart', utterances: [{ words: ['Call', 'the', 'constructor', 'then', 'toString', 'and', 'valueOf'].map((text, k, all) => ({ text, sep: k === all.length - 1 ? '.' : ' ' })), pause: 0.3 }] });
     // eSpeak on its own: words, names, numbers and whole lines, in both accents.
     const espeakInputs = [...new Set([...EXTRA_WORDS, ...EXTRA_LEXICON, ...lexiconSample, ...wagyu.split('\n').map(line => line.replace(/[*_`#>|\[\]()<!-]/g, ' ').trim()).filter(line => line.length > 3).slice(0, 120)])];
     const espeakCases: unknown[] = [];

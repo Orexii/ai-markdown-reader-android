@@ -91,21 +91,24 @@ object Navigation {
     fun previousSentence(index: Int, offset: Double): Move =
         Move.To(if (offset > RESTART_SECONDS) index else maxOf(0, index - 1))
 
+    /** Whether two passages are in the same paragraph stop: the same block and, in a table, the same row. */
+    private fun sameStop(a: Utterance, b: Utterance) = a.block == b.block && a.part == b.part
+
     fun nextParagraph(utterances: List<Utterance>, index: Int): Move {
-        val block = utterances.getOrNull(index)?.block
-        val next = (index + 1 until utterances.size).firstOrNull { utterances[it].block != block }
+        val here = utterances.getOrNull(index) ?: return Move.End("This is the last paragraph")
+        val next = (index + 1 until utterances.size).firstOrNull { !sameStop(utterances[it], here) }
         return if (next != null) Move.To(next) else Move.End("This is the last paragraph")
     }
 
-    /** Back to the start of this paragraph, or to the one before when already at its start. */
+    /** Back to the start of this paragraph (or table row), or to the one before when already at its start. */
     fun previousParagraph(utterances: List<Utterance>, index: Int, offset: Double): Move {
-        val block = utterances.getOrNull(index)?.block
+        val here = utterances.getOrNull(index) ?: return Move.To(0)
         var start = index
-        while (start > 0 && utterances[start - 1].block == block) start--
-        val insideBlock = start < index || offset > RESTART_SECONDS
-        if (!insideBlock && start > 0) {
-            val previous = utterances[--start].block
-            while (start > 0 && utterances[start - 1].block == previous) start--
+        while (start > 0 && sameStop(utterances[start - 1], here)) start--
+        val insideStop = start < index || offset > RESTART_SECONDS
+        if (!insideStop && start > 0) {
+            val previous = utterances[--start]
+            while (start > 0 && sameStop(utterances[start - 1], previous)) start--
         }
         return Move.To(start)
     }
