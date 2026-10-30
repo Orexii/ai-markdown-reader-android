@@ -84,9 +84,11 @@ details; website `https://github.com/Orexii/ai-markdown-reader-android` (Play sh
    Google Group they join), choose countries, add the release's bundle from the library, save, then **Publishing
    overview → Submit changes for review** (reviews usually take up to 7 days). Share the **opt-in link**; each
    tester opens it on their phone, accepts, and installs from Play. The 14 days start once 12 testers are opted in,
-   and restart if fewer than 12 stay opted in. Set up for 0.1.0 on **Alpha**: all 178 countries, the email list
-   **Closed testers** (add testers' Google account emails to it), feedback to GitHub issues; opt-in link
-   https://play.google.com/apps/testing/com.orexii.aimarkdownreader.
+   and restart if fewer than 12 stay opted in. Set up for 0.1.0 on **Alpha**: all 178 countries, feedback to GitHub
+   issues, and the Google Group **ai-markdown-reader-testers@googlegroups.com**
+   (https://groups.google.com/g/ai-markdown-reader-testers): anyone can join, only managers post or see members.
+   Testers join the group with the Google account on their phone, then opt in at
+   https://play.google.com/apps/testing/com.orexii.aimarkdownreader and install from Play.
 3. After 14 days, **Dashboard → Apply for production** and answer the short questionnaire about the test.
 
 Updates during the closed test are fine: bump the version, publish a GitHub release, upload the new bundle.
