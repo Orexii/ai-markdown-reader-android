@@ -4,6 +4,7 @@ import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Configurator
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import org.junit.Assume.assumeTrue
@@ -50,26 +51,33 @@ class PlayVideoTest {
     @Test(timeout = 20 * 60 * 1000L)
     fun foregroundServiceVideo() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("video") == "true")
+        // While reading, the screen is never idle; UiAutomator would wait 10 s for it before each look.
+        val configurator = Configurator.getInstance()
+        val idleTimeout = configurator.waitForIdleTimeout
+        configurator.waitForIdleTimeout = 500
         with(driver) {
             try {
                 freshStartWithVoice()
-                // Emulators synthesize at about real time: a head start keeps pauses for audio out of the video.
-                SystemClock.sleep(30_000)
+                // Emulators load the voice slowly and then synthesize at about real time: a head start keeps pauses
+                // for audio out of the video.
+                SystemClock.sleep(120_000)
                 record {
                     SystemClock.sleep(2_500)
                     find("play", 10_000).click()
-                    waitUntil("reading has started", 30_000) { playLabel() == "Pause" }
+                    waitUntil("reading has started", 30_000) { reading() }
                     SystemClock.sleep(9_000)
                     device.pressHome()
                     SystemClock.sleep(3_500)
                     device.openNotification()
                     val pause = mediaButton("Pause")
                     SystemClock.sleep(4_500)
+                    check(reading()) { "Reading stopped at the home screen" }
                     pause.click()
+                    waitUntil("the notification has paused reading", 15_000) { sessionState() == 2 }
                     val play = mediaButton("Play")
                     SystemClock.sleep(2_500)
                     play.click()
-                    mediaButton("Pause")
+                    waitUntil("the notification has resumed reading", 15_000) { reading() }
                     SystemClock.sleep(4_000)
                     device.pressBack()
                     SystemClock.sleep(1_000)
@@ -77,12 +85,14 @@ class PlayVideoTest {
                     find("play", 10_000)
                     SystemClock.sleep(5_000)
                     find("play", 5_000).click()
-                    waitUntil("reading has paused", 10_000) { playLabel() == "Play" }
+                    waitUntil("reading has paused", 15_000) { sessionState() == 2 }
                     SystemClock.sleep(2_000)
                 }
             } catch (failure: Throwable) {
                 saveFailure()
                 throw failure
+            } finally {
+                configurator.waitForIdleTimeout = idleTimeout
             }
         }
     }

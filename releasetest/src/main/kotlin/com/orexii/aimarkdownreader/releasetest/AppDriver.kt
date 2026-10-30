@@ -47,6 +47,9 @@ class AppDriver(private val logTag: String) {
 
     fun playLabel(): String? = device.findObject(By.res("play"))?.contentDescription
 
+    /** Playing, or briefly waiting for audio: media session state 3 or 6. */
+    fun reading(state: Int? = sessionState()) = state == 3 || state == 6
+
     /** The app's media session state from dumpsys media_session (2 paused, 3 playing), or null without one. */
     fun sessionState(): Int? {
         val lines = device.executeShellCommand("dumpsys media_session").lines()

@@ -18,9 +18,6 @@ private const val TAG = "FirstRunTest"
 class FirstRunTest {
     private val driver = AppDriver(TAG)
 
-    /** Playing, or briefly waiting for audio (a slow emulator's voice can fall behind for a moment). */
-    private fun reading(state: Int?) = state == 3 || state == 6
-
     @Test
     fun noTelemetry() {
         // ONNX Runtime's Android library starts usage telemetry from a content provider; the app leaves it out.
