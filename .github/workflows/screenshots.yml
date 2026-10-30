@@ -61,13 +61,14 @@ jobs:
             adb push .model/onnx/model_quantized.onnx /data/local/tmp/amr-model/onnx/
             adb push .model/voices/af_heart.bin /data/local/tmp/amr-model/voices/
             adb shell chmod -R 755 /data/local/tmp/amr-model
+            # Resize first: the status bar is rebuilt for the new size, which would drop demo mode.
+            if [ -n "${{ matrix.size }}" ]; then adb shell wm size ${{ matrix.size }}; sleep 10; fi
             adb shell settings put global sysui_demo_allowed 1
             adb shell am broadcast -a com.android.systemui.demo -e command enter
             adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 0930
             adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
             adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4
             adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
-            if [ -n "${{ matrix.size }}" ]; then adb shell wm size ${{ matrix.size }}; fi
             adb install -r -t app/build/outputs/apk/debug/app-debug.apk
             adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -r -e class com.orexii.aimarkdownreader.ScreenshotTest -e screenshots true com.orexii.aimarkdownreader.debug.test/androidx.test.runner.AndroidJUnitRunner | tee instrument.txt
