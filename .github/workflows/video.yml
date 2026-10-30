@@ -1,7 +1,7 @@
 name: Play video
 # Records the screen video for Google Play's foreground service declaration (Media playback) on a phone emulator, with
 # nothing personal on screen: Play in the app, reading carries on at the home screen with the media notification,
-# pause and play from the notification, then back to the app. It uses the release build, signed here with the debug
+# pause and play from the notification, then back to the app from it. It uses the release build, signed here with the debug
 # key, so it shows the app's real name. Download it from the run's artifacts to play/fgs-media-playback.mp4.
 on:
   workflow_dispatch:

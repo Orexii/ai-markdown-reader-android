@@ -16,7 +16,8 @@ private const val VIDEO = "/data/local/tmp/fgs-media-playback.mp4"
 /**
  * The screen recording for Google Play's foreground service declaration (Media playback), made by
  * .github/workflows/video.yml with the instrumentation argument video=true: Play in the app, reading carries on at
- * the home screen with the media notification, pause and play from the notification, then back to the app.
+ * the home screen with the media notification, pause and play from the notification, then back to the app from the
+ * notification.
  * Saved to /data/local/tmp/fgs-media-playback.mp4.
  */
 @RunWith(AndroidJUnit4::class)
@@ -29,6 +30,10 @@ class PlayVideoTest {
             ?: error("No $label button in the notification's media player")
 
     private fun recording(): Boolean = driver.device.executeShellCommand("pidof screenrecord").isNotBlank()
+
+    /** Whether the app is the resumed activity (asked through the shell: the reading page is slow to inspect). */
+    private fun inFront(): Boolean = driver.device.executeShellCommand("dumpsys activity activities").lines()
+        .any { "ResumedActivity" in it && "${driver.app}/" in it }
 
     /** Records the screen to [VIDEO] while [steps] run. */
     private fun record(steps: () -> Unit) {
@@ -63,7 +68,10 @@ class PlayVideoTest {
                 SystemClock.sleep(120_000)
                 record {
                     SystemClock.sleep(2_500)
-                    find("play", 10_000).click()
+                    // While reading, looking through the page's accessibility tree takes the emulator many seconds, so
+                    // the play button is found now, while paused, and tapped where it is later.
+                    val playButton = find("play", 10_000).visibleCenter
+                    device.click(playButton.x, playButton.y)
                     waitUntil("reading has started", 30_000) { reading() }
                     SystemClock.sleep(9_000)
                     device.pressHome()
@@ -79,12 +87,15 @@ class PlayVideoTest {
                     play.click()
                     waitUntil("the notification has resumed reading", 15_000) { reading() }
                     SystemClock.sleep(4_000)
-                    device.pressBack()
-                    SystemClock.sleep(1_000)
-                    launch()
-                    find("play", 10_000)
-                    SystemClock.sleep(5_000)
-                    find("play", 5_000).click()
+                    // Back to the app by tapping the notification (its title is the document's name).
+                    device.findObject(By.pkg("com.android.systemui").text("wagyu.md"))?.click()
+                    if (runCatching { waitUntil("the notification has opened the app", 5_000, ::inFront) }.isFailure) {
+                        device.pressBack()
+                        launch()
+                    }
+                    SystemClock.sleep(6_000)
+                    check(reading()) { "Reading stopped when the app came back" }
+                    device.click(playButton.x, playButton.y)
                     waitUntil("reading has paused", 15_000) { sessionState() == 2 }
                     SystemClock.sleep(2_000)
                 }

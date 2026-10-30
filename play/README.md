@@ -69,8 +69,8 @@ the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
   must reopen the app to continue listening."*
 - Video: [fgs-media-playback.mp4](fgs-media-playback.mp4), recorded on an emulator by the **Play video** workflow
   (.github/workflows/video.yml): Play in the app, reading carries on at the home screen with the media
-  notification, pause and play from the notification, then back to the app. Upload it to YouTube as **Unlisted**
-  and paste its link.
+  notification, pause and play from the notification, then back to the app from it. Upload it to YouTube as
+  **Unlisted** and paste its link.
 
 ## 5. Testing
 
