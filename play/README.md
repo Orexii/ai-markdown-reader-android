@@ -38,8 +38,8 @@ The package name is set by the first upload: `com.orexii.aimarkdownreader`. It c
 | Full description | [full-description.txt](listings/en-US/full-description.txt) |
 | App icon | [graphics/icon.png](listings/en-US/graphics/icon.png) (512 × 512) |
 | Feature graphic | [graphics/feature-graphic.png](listings/en-US/graphics/feature-graphic.png) (1024 × 500) |
-| Phone screenshots | `graphics/phone-*.png` (run the **Store screenshots** workflow, or take them on a phone; 9:16, no transparency) |
-| Tablet screenshots | `graphics/tablet-*.png` (optional; 16:9 or 9:16) |
+| Phone screenshots | [graphics/phone-*.png](listings/en-US/graphics) (1080 × 1920; from the **Store screenshots** workflow, which can retake them) |
+| Tablet screenshots (7-inch and 10-inch) | [graphics/tablet-*.png](listings/en-US/graphics) (2560 × 1440, 16:9) |
 
 **Store settings**: category **Productivity**; tags such as Text to speech and Reading; contact email (shown on
 the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
