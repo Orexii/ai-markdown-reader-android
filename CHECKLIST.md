@@ -3,7 +3,8 @@
 Use this on a phone with the Wagyu field guide (**Home → Try it: the Wagyu field guide**), the same master test
 file as the VS Code extension's [checklist](https://github.com/Orexii/ai-markdown-reader/blob/main/examples/wagyu-checklist.md).
 Its source also has a hidden note next to each feature (an HTML comment starting with "Check:") that says what
-you should hear. On a foldable, do sections 1 to 3 on both screens.
+you should hear. On a foldable, do sections 1 to 3 on both screens. On a wide screen (unfolded, or a tablet), the
+page and the player's buttons stay together in the middle.
 
 ## 1. Start reading
 
@@ -69,7 +70,8 @@ you should hear. On a foldable, do sections 1 to 3 on both screens.
   with British pronunciation.
 - [ ] **Phone's voice** reads with the phone's own voice (words highlighted approximately); **Natural** switches back.
 - [ ] Add a pronunciation, for example **Wagyu → wah gyoo**: the next time Wagyu is read, it is said that way.
-- [ ] **Theme: Dark** and **Light** change the app and the page.
+- [ ] **Theme: Dark** and **Light** change the app and the page. The status bar's icons stay readable (light on
+  Dark, dark on Light), even when the phone's own theme is the other one.
 
 ## 7. Files and other apps
 
