@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Downloading the natural voice once, and images on the web that documents show. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -25,6 +26,12 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.AiMarkdownReader">
+
+        <!-- ONNX Runtime's usage telemetry (to Microsoft, started at launch by this provider) is left out. -->
+        <provider
+            android:name="ai.onnxruntime.TelemetryInitializer"
+            android:authorities="${applicationId}.onnxruntime_telemetry_initializer"
+            tools:node="remove" />
 
         <activity
             android:name=".MainActivity"

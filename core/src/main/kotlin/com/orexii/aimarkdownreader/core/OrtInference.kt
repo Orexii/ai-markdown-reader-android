@@ -15,7 +15,8 @@ class OrtInference(
     threads: Int,
     configure: (OrtSession.SessionOptions) -> Unit = {},
 ) : KokoroInference, AutoCloseable {
-    private val environment: OrtEnvironment = OrtEnvironment.getEnvironment()
+    // No usage telemetry. On Android the app also leaves out the library's telemetry initializer (its manifest).
+    private val environment: OrtEnvironment = OrtEnvironment.getEnvironment().apply { runCatching { setTelemetry(false) } }
     private val session: OrtSession = OrtSession.SessionOptions().use { options ->
         options.setIntraOpNumThreads(threads)
         options.setInterOpNumThreads(1)

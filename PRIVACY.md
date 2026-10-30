@@ -12,7 +12,8 @@ AI Markdown Reader: Read Aloud (Android app `com.orexii.aimarkdownreader`, by Or
 - **Speech** is generated on your phone, by the natural voice or by your phone's own text-to-speech voice. If you
   choose the phone's voice, the text is spoken by the text-to-speech app installed on your phone (for example
   Speech Services by Google), under that app's own privacy policy.
-- **No accounts, no ads, no analytics, no tracking, no crash reporting.** The app has no servers.
+- **No accounts, no ads, no analytics, no tracking, no crash reporting.** The app has no servers. ONNX Runtime,
+  the library that runs the natural voice, can send usage telemetry to Microsoft; the app leaves that part out.
 
 ## Network access
 

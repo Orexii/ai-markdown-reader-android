@@ -54,7 +54,7 @@ the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
 | Content rating | Category **Utility, Productivity, Communication, or Other**; answer **No** to every question (no violence, sexuality, language, controlled substances, gambling, user interaction or content sharing, location sharing, digital purchases, or unrestricted internet access) |
 | Target audience | 13–15, 16–17 and 18 and over. The app is not designed to appeal to children |
 | News app | No |
-| Data safety | **No** data collected, **no** data shared (documents are processed on the phone; the voice download is a file download the user asks for). The form then skips the remaining questions |
+| Data safety | **No** data collected, **no** data shared (documents are processed on the phone; the voice download is a file download the user asks for; ONNX Runtime's usage telemetry is removed from the app, which the release build test checks). The form then skips the remaining questions |
 | Government app | No |
 | Financial features | My app doesn't provide any financial features |
 | Health | My app does not have any health features |

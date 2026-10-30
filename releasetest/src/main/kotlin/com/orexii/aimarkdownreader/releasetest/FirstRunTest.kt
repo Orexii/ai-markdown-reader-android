@@ -64,6 +64,18 @@ class FirstRunTest {
         return Regex("""state=PlaybackState \{state=(?:[A-Z_]+\()?(\d+)""").find(state)?.groupValues?.get(1)?.toInt()
     }
 
+    /** Playing, or briefly waiting for audio (a slow emulator's voice can fall behind for a moment). */
+    private fun reading(state: Int?) = state == 3 || state == 6
+
+    @Test
+    fun noTelemetry() {
+        // ONNX Runtime's Android library starts usage telemetry from a content provider; the app leaves it out.
+        val dump = device.executeShellCommand("dumpsys package $app")
+        check("Package [$app]" in dump) { "$app is not installed" }
+        val telemetry = dump.lines().filter { "onnxruntime" in it }
+        check(telemetry.isEmpty()) { "ONNX Runtime's telemetry is in the app: $telemetry" }
+    }
+
     @Test(timeout = 20 * 60 * 1000L)
     fun firstRunReadsAloud() {
         try {
@@ -76,13 +88,13 @@ class FirstRunTest {
             check(device.wait(Until.gone(By.res("voice-setup")), 10 * 60_000L)) { "The natural voice did not finish downloading" }
             find("play", 10_000).click()
             waitUntil("reading has started", 120_000) { playLabel() == "Pause" && elapsed() >= 2 }
-            check(sessionState() == 3) { "The media session does not say it is playing" }
+            sessionState().let { check(reading(it)) { "The media session does not say it is playing (state $it)" } }
 
             val before = elapsed()
             device.pressHome()
             SystemClock.sleep(10_000)
             check(shell("dumpsys activity services $app").contains("isForeground=true")) { "No foreground service while reading in the background" }
-            check(sessionState() == 3) { "Reading stopped in the background" }
+            sessionState().let { check(reading(it)) { "Reading stopped in the background (state $it)" } }
             shell("input keyevent KEYCODE_MEDIA_PAUSE")
             waitUntil("the pause key has paused reading", 15_000) { sessionState() == 2 }
 

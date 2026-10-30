@@ -155,7 +155,7 @@ jobs:
             ./gradlew :releasetest:connectedStagingAndroidTest --console=plain || touch device-tests-failed
             adb logcat -d > logcat.txt
             adb pull /data/local/tmp/releasetest-failure.png || true
-            node tools/check-device-results.mjs 1 releasetest
+            node tools/check-device-results.mjs 2 releasetest
             test ! -f device-tests-failed
       - if: always()
         uses: actions/upload-artifact@v4
