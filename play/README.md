@@ -22,10 +22,9 @@ family and colleagues with an Android phone. Recruit 15 or so, in case some drop
 | App name | AI Markdown Reader: Read Aloud |
 | Default language | English (United States) – en-US |
 | App or game | App |
-| Free or paid | Free |
-| Declarations | Accept both (Developer Program Policies, US export laws) |
-
-The package name is set by the first upload: `com.orexii.aimarkdownreader`. It can never change.
+| App package name | `com.orexii.aimarkdownreader` (it can never change) |
+| Free or paid | Free. Then **turn off** the automatic protection it offers: it injects Google code that checks the installer, which the free, open-source, GPL-licensed app doesn't want (the APK is on GitHub anyway) |
+| Declarations | Accept all three (Developer Program Policies, Play App Signing Terms of Service, US export laws) |
 
 ## 3. Store listing
 
@@ -40,9 +39,10 @@ The package name is set by the first upload: `com.orexii.aimarkdownreader`. It c
 | Feature graphic | [graphics/feature-graphic.png](listings/en-US/graphics/feature-graphic.png) (1024 × 500) |
 | Phone screenshots | [graphics/phone-*.png](listings/en-US/graphics) (1080 × 1920; from the **Store screenshots** workflow, which can retake them) |
 | Tablet screenshots (7-inch and 10-inch) | [graphics/tablet-*.png](listings/en-US/graphics) (2560 × 1440, 16:9) |
+| AI asset declaration | **Label assets as created or edited using AI**: the icon and feature graphic (the Wagyu mascot is AI-generated); not the screenshots |
 
-**Store settings**: category **Productivity**; tags such as Text to speech and Reading; contact email (shown on
-the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
+**Store settings**: category **Productivity**; contact email: the public developer email from the account
+details; website `https://github.com/Orexii/ai-markdown-reader-android` (Play shows it as http://).
 
 ## 4. App content (Policy → App content)
 
@@ -51,7 +51,7 @@ the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
 | Privacy policy | `https://github.com/Orexii/ai-markdown-reader-android/blob/main/PRIVACY.md` |
 | Ads | No, the app doesn't contain ads |
 | App access | All functionality is available without any access restrictions |
-| Content rating | Category **Utility, Productivity, Communication, or Other**; answer **No** to every question (no violence, sexuality, language, controlled substances, gambling, user interaction or content sharing, location sharing, digital purchases, or unrestricted internet access) |
+| Content rating | Category **All Other App Types**; answer **No** to every question (no ratings-relevant content, user interaction or content sharing, featured online content, age-restricted products, location sharing, digital purchases, cash rewards, browser or search engine, news or education). Result: Everyone, PEGI 3, USK 0, 3+ |
 | Target audience | 13–15, 16–17 and 18 and over. The app is not designed to appeal to children |
 | News app | No |
 | Data safety | **No** data collected, **no** data shared (documents are processed on the phone; the voice download is a file download the user asks for; ONNX Runtime's usage telemetry is removed from the app, which the release build test checks). The form then skips the remaining questions |
@@ -69,18 +69,24 @@ the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
   must reopen the app to continue listening."*
 - Video: [fgs-media-playback.mp4](fgs-media-playback.mp4), recorded on an emulator by the **Play video** workflow
   (.github/workflows/video.yml): Play in the app, reading carries on at the home screen with the media
-  notification, pause and play from the notification, then back to the app from it. Upload it to YouTube as
-  **Unlisted** and paste its link.
+  notification, pause and play from the notification, then back to the app from it. It is on YouTube as
+  Unlisted: https://www.youtube.com/watch?v=Dvqvx4rCrO0 (the form only asks to tick **Media playback** and for
+  this link).
 
 ## 5. Testing
 
 1. **Internal testing** (Test and release → Testing → Internal testing): create a release, keep **Google-generated
    app signing key** (Play App Signing), upload `ai-markdown-reader-<version>.aab` from the GitHub release, add
-   yourself as a tester, roll out. Install it from the opt-in link to check the Play build.
+   yourself as a tester, roll out. Install it from the opt-in link to check the Play build. Set up for 0.1.0 with
+   the email list **Internal testers**; opt-in link https://play.google.com/apps/internaltest/4701219549418503492.
+   Until the app is reviewed, Play shows it as "com.orexii.aimarkdownreader (unreviewed)".
 2. **Closed testing** (Testing → Closed testing → Alpha, or a new track): add the testers (an email list, or a
-   Google Group they join), choose countries, promote the internal release to this track and send it for review.
-   Share the **opt-in link**; each tester opens it on their phone, accepts, and installs from Play. The 14 days
-   start once 12 testers are opted in, and restart if fewer than 12 stay opted in.
+   Google Group they join), choose countries, add the release's bundle from the library, save, then **Publishing
+   overview → Submit changes for review** (reviews usually take up to 7 days). Share the **opt-in link**; each
+   tester opens it on their phone, accepts, and installs from Play. The 14 days start once 12 testers are opted in,
+   and restart if fewer than 12 stay opted in. Set up for 0.1.0 on **Alpha**: all 178 countries, the email list
+   **Closed testers** (add testers' Google account emails to it), feedback to GitHub issues; opt-in link
+   https://play.google.com/apps/testing/com.orexii.aimarkdownreader.
 3. After 14 days, **Dashboard → Apply for production** and answer the short questionnaire about the test.
 
 Updates during the closed test are fine: bump the version, publish a GitHub release, upload the new bundle.
