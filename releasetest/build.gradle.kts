@@ -24,6 +24,7 @@ android {
         create("staging") {
             isDebuggable = true
             signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
         }
     }
 
