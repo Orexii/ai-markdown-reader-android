@@ -106,6 +106,7 @@ it clears the staging app's data, opens the guide, downloads the natural voice, 
 on in the background in a foreground service, and pauses it with the headset pause key. Without Gradle: install
 `app/build/outputs/apk/staging/app-staging.apk` and `releasetest/build/outputs/apk/staging/releasetest-staging.apk`,
 then `adb shell am instrument -w com.orexii.aimarkdownreader.releasetest/androidx.test.runner.AndroidJUnitRunner`.
+The same module records Google Play's foreground service video (`PlayVideoTest`, run by the Play video workflow).
 
 CI checks the generated files, runs the JVM tests with the real model, builds and lints the app, then runs the
 device tests and the release build test on x86_64 emulators.

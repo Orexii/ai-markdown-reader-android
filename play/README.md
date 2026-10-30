@@ -67,9 +67,10 @@ the listing); website `https://github.com/Orexii/ai-markdown-reader-android`.
   while another app is open, with controls in the notification, on the lock screen and on Bluetooth headphones."*
 - Impact if deferred or interrupted: *"Reading stops in the middle of a sentence; the user loses their place and
   must reopen the app to continue listening."*
-- Video: a screen recording that opens a document, taps Play, goes to the home screen and shows the notification
-  while reading continues ([fgs-media-playback.mp4](fgs-media-playback.mp4) in this folder, linked from the
-  repository, or uploaded to YouTube as unlisted).
+- Video: [fgs-media-playback.mp4](fgs-media-playback.mp4), recorded on an emulator by the **Play video** workflow
+  (.github/workflows/video.yml): Play in the app, reading carries on at the home screen with the media
+  notification, pause and play from the notification, then back to the app. Upload it to YouTube as **Unlisted**
+  and paste its link.
 
 ## 5. Testing
 
