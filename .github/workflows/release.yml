@@ -65,7 +65,8 @@ jobs:
           mkdir -p releases
           cp app/build/outputs/bundle/release/app-release.aab "releases/ai-markdown-reader-$VERSION.aab"
           cp app/build/outputs/apk/release/app-release.apk "releases/ai-markdown-reader-$VERSION.apk"
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "releases/ai-markdown-reader-$VERSION.apk" | head -3
+          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$tools/apksigner" verify --print-certs "releases/ai-markdown-reader-$VERSION.apk" | head -3
           (cd releases && sha256sum *.aab *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
           node tools/whats-new.mjs "$VERSION" > releases/whatsnew-en-US
       - name: Attach to the GitHub release

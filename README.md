@@ -14,7 +14,9 @@ and a Kotlin port of its pronunciation engine that is tested to give identical r
 
 - **Google Play:** coming soon.
 - **APK:** download `ai-markdown-reader-<version>.apk` from the
-  [latest release](https://github.com/Orexii/ai-markdown-reader-android/releases/latest) and open it.
+  [latest release](https://github.com/Orexii/ai-markdown-reader-android/releases/latest) and open it. The APK and
+  the Google Play version are signed with different keys, so to switch from one to the other, uninstall it first
+  (which also removes its downloaded voice).
 
 Android 8.0 or later. The natural voice is a one-time download the first time you listen: **92 MB** (Compact,
 the default) or **326 MB** (Best). After that, speech is generated entirely on the phone, even offline. Phones from
