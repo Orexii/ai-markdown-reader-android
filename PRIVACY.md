@@ -1,14 +1,16 @@
 # Privacy policy
 
-AI Markdown Reader: Read Aloud (Android app `com.orexii.aimarkdownreader`, by Orexii). Last updated 29 October 2026.
+AI Markdown Reader: Read Aloud (Android app `com.orexii.aimarkdownreader`, by Orexii). Last updated 20 November 2026.
 
 **The short version: your documents stay on your phone. The app collects nothing and sends nothing about you.**
 
 ## What the app does with your data
 
-- **Your documents** are opened and read aloud on your phone. Their text is never uploaded or shared. The app
-  only reads the files and folders you choose to open, and remembers which ones you opened recently and where
-  you stopped reading, on your phone.
+- **Your documents** are previewed, edited and read aloud on your phone. The app only opens files and folders
+  you choose and writes documents when you choose **Save** or **Save as**. If you choose a cloud storage
+  provider in Android's picker, that provider handles syncing under its own policy. The app remembers recent
+  files and reading positions on your phone. Android can keep a temporary recovery copy of the active editor
+  session in the app's private cache; it is not backed up.
 - **Speech** is generated on your phone, by the natural voice or by your phone's own text-to-speech voice. If you
   choose the phone's voice, the text is spoken by the text-to-speech app installed on your phone (for example
   Speech Services by Google), under that app's own privacy policy.
@@ -32,7 +34,7 @@ The app connects to the internet only to:
 Settings, the list of recent documents, reading positions and the downloaded voice are stored in the app's
 private storage. Android may include settings and reading positions in your device backup; the downloaded voice
 is excluded. **Settings → Remove the downloaded natural voice** deletes the voice; uninstalling the app deletes
-everything.
+the app's private data, not Markdown files you saved to a provider.
 
 ## Children
 

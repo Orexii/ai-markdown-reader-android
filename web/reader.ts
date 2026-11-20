@@ -73,11 +73,14 @@ function slice(range: SourceRange): string {
 
 const api = {
   /** Shows a document and builds its narration. */
-  open(text: string, settings: Options): void {
+  open(text: string, settings: Options, previewOnly = false): void {
     markdown = text;
     options = settings;
     deliver({ type: 'render', html: renderPreview(text, { resolveImage }) });
-    build();
+    if (previewOnly) {
+      doc = undefined;
+      deliver({ type: 'clear' });
+    } else build();
   },
 
   /** Rebuilds the narration after a setting change (tables, code blocks). */

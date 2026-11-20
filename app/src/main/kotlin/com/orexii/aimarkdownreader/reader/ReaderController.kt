@@ -41,14 +41,18 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 /** A document being read: its text and where it came from. */
+@Serializable
 data class OpenDocument(
     val uri: String,
     val title: String,
     val text: String,
     /** The folder (a document tree, or "samples") used for images and links next to the document. */
     val folder: String?,
+    val writable: Boolean = false,
+    val utf8Bom: Boolean = false,
 )
 
 /** The voice behind the player. */

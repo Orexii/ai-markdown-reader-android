@@ -14,6 +14,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,8 +29,10 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.orexii.aimarkdownreader.playback.PlaybackService
 import com.orexii.aimarkdownreader.reader.Documents
+import com.orexii.aimarkdownreader.reader.EditorModel
 import com.orexii.aimarkdownreader.reader.OpenDocument
 import com.orexii.aimarkdownreader.reader.PageState
+import com.orexii.aimarkdownreader.ui.EditorScreen
 import com.orexii.aimarkdownreader.ui.FolderScreen
 import com.orexii.aimarkdownreader.ui.HomeScreen
 import com.orexii.aimarkdownreader.ui.PageListener
@@ -43,6 +49,7 @@ private const val NAVIGATION_SCRIM_DARK = 0x801B1B1B.toInt()
 /** The app's one activity: home, folders and the reader. Opens files shared with it or opened with it. */
 class MainActivity : ComponentActivity() {
     private val app get() = application as App
+    private val editor: EditorModel by viewModels()
     private var webView by mutableStateOf<ReaderWebView?>(null)
     private var controller: ListenableFuture<MediaController>? = null
 
@@ -50,21 +57,37 @@ class MainActivity : ComponentActivity() {
         data object Home : Screen
         data class Folder(val tree: Uri, val name: String, val files: List<Pair<String, Uri>>?) : Screen
         data class Reader(val back: Screen) : Screen
+        data class Editor(val back: Screen) : Screen
     }
 
     private var screen by mutableStateOf<Screen>(Screen.Home)
+    private var afterDiscard by mutableStateOf<(() -> Unit)?>(null)
 
-    private val openFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    private val fileTypes = arrayOf("text/markdown", "text/x-markdown", "text/plain", "application/octet-stream")
+    private fun filePicker(preview: Boolean) = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            open(uri, null, Screen.Home)
+            Documents.keepAccess(this, uri)
+            open(uri, null, Screen.Home, preview)
         }
     }
+    private val openFile = filePicker(preview = false)
+    private val previewFile = filePicker(preview = true)
 
     private val openFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree ->
         if (tree != null) {
-            runCatching { contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            Documents.keepAccess(this, tree)
             showFolder(tree)
+        }
+    }
+
+    private val createFile = registerForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+        val draft = editor.draft
+        if (draft != null && draft.choosingDestination) {
+            draft.choosingDestination = false
+            if (uri != null) {
+                Documents.keepAccess(this, uri)
+                editor.save(uri)
+            }
         }
     }
 
@@ -91,15 +114,21 @@ class MainActivity : ComponentActivity() {
                 ReaderWebView.openExternal(this@MainActivity, href)
                 return
             }
-            val document = app.reader.document.value ?: return
+            val current = screen
+            val (document, back) = when (current) {
+                is Screen.Editor -> (editor.draft?.document ?: return) to current.back
+                is Screen.Reader -> (app.reader.document.value ?: return) to current.back
+                else -> return
+            }
+            val preview = current is Screen.Editor
             val resolved = Documents.resolve(this@MainActivity, document, href)
             if (resolved == null || !Documents.isMarkdown(resolved.name)) {
                 Toast.makeText(this@MainActivity, "Open the document's folder to follow links to other files.", Toast.LENGTH_LONG).show()
                 return
             }
             when (resolved) {
-                is Documents.Resolved.Asset -> show(Documents.sample(this@MainActivity, resolved.name), (screen as? Screen.Reader)?.back ?: Screen.Home)
-                is Documents.Resolved.Tree -> open(resolved.uri, Documents.folderOf(resolved.tree, resolved.path), (screen as? Screen.Reader)?.back ?: Screen.Home)
+                is Documents.Resolved.Asset -> show(Documents.sample(this@MainActivity, resolved.name), back, preview)
+                is Documents.Resolved.Tree -> open(resolved.uri, Documents.folderOf(resolved.tree, resolved.path), back, preview)
             }
         }
     }
@@ -109,6 +138,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         webView = ReaderWebView(this, listener)
         if (app.reader.document.value != null) screen = Screen.Reader(Screen.Home)
+        if (savedInstanceState?.getBoolean("editor") == true && editor.restore()) {
+            val tree = savedInstanceState.getString("editorTree")
+            screen = Screen.Editor(if (tree == null) Screen.Home else Screen.Folder(Uri.parse(tree), "", null))
+        }
         if (savedInstanceState == null) handle(intent)
         setContent {
             val settings by app.settings.settings.collectAsStateWithLifecycle()
@@ -125,14 +158,16 @@ class MainActivity : ComponentActivity() {
                 when (val current = screen) {
                     is Screen.Home -> HomeScreen(
                         app.reader,
-                        onOpenFile = { openFile.launch(arrayOf("text/markdown", "text/x-markdown", "text/plain", "application/octet-stream")) },
+                        onOpenFile = { openFile.launch(fileTypes) },
+                        onPreviewFile = { previewFile.launch(fileTypes) },
+                        onNewFile = { show(Documents.untitled, Screen.Home, preview = true) },
                         onOpenFolder = { openFolder.launch(null) },
                         onSample = { show(Documents.sample(this, "wagyu.md"), Screen.Home) },
                         onRecent = { recent ->
                             when {
-                                recent.folder == Documents.SAMPLES -> show(Documents.sample(this, recent.title), Screen.Home)
+                                recent.folder == Documents.SAMPLES -> show(Documents.sample(this, recent.title), Screen.Home, recent.preview)
                                 recent.uri.startsWith("shared:") -> app.reader.forget(recent.uri)
-                                else -> open(Uri.parse(recent.uri), recent.folder, Screen.Home)
+                                else -> open(Uri.parse(recent.uri), recent.folder, Screen.Home, recent.preview)
                             }
                         },
                     )
@@ -148,12 +183,68 @@ class MainActivity : ComponentActivity() {
                             LaunchedEffect(Unit) { screen = current.back }
                         } else {
                             BackHandler { leaveReader(current.back) }
-                            webView?.let { page -> ReaderScreen(app.reader, open, page, onBack = { leaveReader(current.back) }) }
+                            webView?.let { page -> ReaderScreen(app.reader, open, page, onBack = { leaveReader(current.back) }, onPreview = {
+                                show(open, current.back, preview = true)
+                            }) }
+                        }
+                    }
+                    is Screen.Editor -> {
+                        val back = {
+                            leaveDraft {
+                                if (current.back is Screen.Folder) showFolder(current.back.tree) else screen = current.back
+                            }
+                        }
+                        BackHandler(onBack = back)
+                        val draft = editor.draft
+                        val page = webView
+                        if (draft != null && page != null) {
+                            EditorScreen(draft, page, settings, onBack = back, onSave = ::save, onListen = {
+                                show(draft.document, current.back)
+                            })
                         }
                     }
                 }
+                afterDiscard?.let { proceed ->
+                    AlertDialog(
+                        onDismissRequest = { afterDiscard = null },
+                        title = { Text("Discard unsaved changes?") },
+                        text = { Text("Your edits have not been saved to a file.") },
+                        confirmButton = { TextButton(onClick = { afterDiscard = null; proceed() }) { Text("Discard") } },
+                        dismissButton = { TextButton(onClick = { afterDiscard = null }) { Text("Keep editing") } },
+                    )
+                }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val active = screen as? Screen.Editor ?: return
+        outState.putBoolean("editor", editor.checkpoint())
+        (active.back as? Screen.Folder)?.let { outState.putString("editorTree", it.tree.toString()) }
+    }
+
+    private fun save(saveAs: Boolean) {
+        val draft = editor.draft ?: return
+        if (draft.busy) return
+        if (!saveAs && draft.document.writable) editor.save(Uri.parse(draft.document.uri))
+        else {
+            draft.choosingDestination = true
+            try {
+                createFile.launch(draft.suggestedName())
+            } catch (e: android.content.ActivityNotFoundException) {
+                draft.choosingDestination = false
+                Toast.makeText(this, "No document picker is available to save this file.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun leaveDraft(next: () -> Unit) {
+        val draft = editor.draft
+        if (draft == null) { next(); return }
+        if (draft.busy) return
+        val leave = { editor.clear(); next() }
+        if (draft.dirty) afterDiscard = leave else leave()
     }
 
     private fun leaveReader(back: Screen) {
@@ -182,10 +273,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun open(uri: Uri, folder: String?, back: Screen) {
+    private fun open(uri: Uri, folder: String?, back: Screen, preview: Boolean = false) {
+        val from = screen
         lifecycleScope.launch {
             runCatching { Documents.read(this@MainActivity, uri, folder) }
-                .onSuccess { show(it, back) }
+                .onSuccess { if (screen === from) show(it, back, preview) }
                 .onFailure {
                     Toast.makeText(this@MainActivity, it.message ?: "The file could not be opened.", Toast.LENGTH_LONG).show()
                     app.reader.forget(uri.toString())
@@ -193,9 +285,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun show(document: OpenDocument, back: Screen) {
-        app.reader.open(document)
-        screen = Screen.Reader(back)
+    private fun show(document: OpenDocument, back: Screen, preview: Boolean = false) = leaveDraft {
+        if (preview) {
+            if (app.reader.document.value?.uri == document.uri) app.reader.command("pause")
+            editor.open(document)
+            screen = Screen.Editor(back)
+        } else {
+            app.reader.open(document)
+            screen = Screen.Reader(back)
+        }
     }
 
     private fun showFolder(tree: Uri) {

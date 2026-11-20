@@ -19,7 +19,7 @@ import kotlinx.serialization.json.Json
 
 /** A document opened before, for the home screen. */
 @Serializable
-data class RecentDocument(val uri: String, val title: String, val folder: String? = null, val at: Long)
+data class RecentDocument(val uri: String, val title: String, val folder: String? = null, val at: Long, val preview: Boolean = false)
 
 /** Where reading stopped in a document: the line and passage, as the extension saves it. */
 @Serializable

@@ -24,6 +24,12 @@ the last few years read faster than real time; you can also use the phone's own 
 
 ## Use
 
+- For a silent, full-page preview, choose **Preview or edit a file** on Home. In the audio reader, **Preview / edit**
+  switches to the same view. No voice download is needed. Tap **Edit** for the Markdown source and **Preview** to see
+  your changes without saving. **⋮ → Read aloud** returns to the player after saving.
+- Choose **New Markdown file** to start with a blank page. **Save** updates a writable original; for a new file,
+  shared text, a read-only file or a bundled sample, it asks where to save a copy. Use **⋮ → Save as…** to choose
+  another name or location. Cancelling the picker keeps your edits.
 - **Open** a Markdown file, or a folder (images and links to other files then work too). You can also choose
   **AI Markdown Reader** under **Open with** or **Share** in a file manager, Gmail, Drive and other apps.
 - **Play** in the player at the bottom. It resumes where you stopped last time.
@@ -131,6 +137,13 @@ debugging, or CI.
 `./gradlew :app:assembleStaging` builds the release configuration (shrunk by R8) signed with the debug key as
 `com.orexii.aimarkdownreader.staging`, to try on a phone next to the Play version. Debug builds are
 `com.orexii.aimarkdownreader.debug`.
+
+To try a local build on your phone without replacing the Play app, run `./gradlew :app:assembleStaging`.
+With USB debugging enabled and the computer authorized, run
+`adb install -r app/build/outputs/apk/staging/app-staging.apk`. Alternatively, copy that APK into Downloads on
+the phone, tap it in Files, and allow Files to **Install unknown apps** if Android asks. You can turn that
+permission off after installing. To update a GitHub APK in place, use the newer **release** APK signed with
+the same key; Play installations update via their Play track.
 
 ## License
 

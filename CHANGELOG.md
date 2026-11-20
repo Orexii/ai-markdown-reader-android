@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Preview Markdown without a voice or player, switch to editing its source, or start a new `.md` file.
+- Save back to a writable file or use **Save as** for a copy. Preview unsaved edits before deciding what to keep.
+
 ## 0.1.0
 
 - **First version.** AI Markdown Reader for Android: Markdown rendered like the VS Code extension's Read Aloud

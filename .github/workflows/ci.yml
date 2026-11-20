@@ -105,7 +105,7 @@ jobs:
             ./gradlew :app:connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.rate=auto || touch device-tests-failed
             adb logcat -d > logcat.txt
             adb logcat -d -s AmrE2E DeviceParityTest AiMarkdownReader TestRunner AndroidRuntime > logcat-tests.txt
-            node tools/check-device-results.mjs 6
+            node tools/check-device-results.mjs 7
             test ! -f device-tests-failed
       - if: always()
         uses: actions/upload-artifact@v4

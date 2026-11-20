@@ -47,6 +47,8 @@ import com.orexii.aimarkdownreader.reader.ReaderController
 fun HomeScreen(
     reader: ReaderController,
     onOpenFile: () -> Unit,
+    onPreviewFile: () -> Unit,
+    onNewFile: () -> Unit,
     onOpenFolder: () -> Unit,
     onSample: () -> Unit,
     onRecent: (RecentDocument) -> Unit,
@@ -74,6 +76,8 @@ fun HomeScreen(
                     Button(onClick = onOpenFile, modifier = Modifier.fillMaxWidth().testTag("open-file")) { Text("Open a Markdown file") }
                     OutlinedButton(onClick = onOpenFolder, modifier = Modifier.fillMaxWidth()) { Text("Open a folder") }
                     OutlinedButton(onClick = onSample, modifier = Modifier.fillMaxWidth().testTag("sample")) { Text("Try it: the Wagyu field guide") }
+                    OutlinedButton(onClick = onPreviewFile, modifier = Modifier.fillMaxWidth()) { Text("Preview or edit a file") }
+                    OutlinedButton(onClick = onNewFile, modifier = Modifier.fillMaxWidth()) { Text("New Markdown file") }
                 }
             }
             if (recent.isNotEmpty()) {

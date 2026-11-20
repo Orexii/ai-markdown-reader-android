@@ -1,9 +1,13 @@
 package com.orexii.aimarkdownreader.reader
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Process
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,6 +20,7 @@ import java.net.URLDecoder
  */
 object Documents {
     const val SAMPLES = "samples"
+    val untitled = OpenDocument("draft:", "Untitled.md", "", null)
     private const val MAX_BYTES = 8 * 1024 * 1024
     private val MARKDOWN = Regex("""\.(md|markdown|mdown|mkd|mkdn|mdx|txt)$""", RegexOption.IGNORE_CASE)
 
@@ -23,8 +28,57 @@ object Documents {
 
     suspend fun read(context: Context, uri: Uri, folder: String? = null): OpenDocument = withContext(Dispatchers.IO) {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readLimited() } ?: error("The file could not be opened.")
-        OpenDocument(uri.toString(), displayName(context, uri), decode(bytes), folder)
+        OpenDocument(uri.toString(), displayName(context, uri), decode(bytes), folder, canOverwrite(context, uri), hasBom(bytes))
     }
+
+    fun keepAccess(context: Context, uri: Uri) {
+        // Providers can grant persistent read access without granting write access.
+        for (flag in listOf(Intent.FLAG_GRANT_READ_URI_PERMISSION, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)) {
+            try {
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+            } catch (e: SecurityException) {
+                Log.d("Documents", "Provider did not grant persistent ${if (flag == Intent.FLAG_GRANT_WRITE_URI_PERMISSION) "write" else "read"} access.")
+            }
+        }
+    }
+
+    private fun canOverwrite(context: Context, uri: Uri): Boolean {
+        if (uri.scheme != "content" || !DocumentsContract.isDocumentUri(context, uri) ||
+            context.checkUriPermission(uri, Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != PackageManager.PERMISSION_GRANTED) return false
+        val column = DocumentsContract.Document.COLUMN_FLAGS
+        return try {
+            context.contentResolver.query(uri, arrayOf(column), null, null, null)?.use {
+                it.moveToFirst() && it.getLong(0) and DocumentsContract.Document.FLAG_SUPPORTS_WRITE.toLong() != 0L
+            } == true
+        } catch (e: RuntimeException) {
+            Log.w("Documents", "Cannot determine write support; offering Save as instead.", e)
+            false
+        }
+    }
+
+    /** [uri] is either a writable opened document or the result of the system's Create Document picker. */
+    suspend fun write(context: Context, uri: Uri, source: OpenDocument, text: String): OpenDocument = withContext(Dispatchers.IO) {
+        require(uri.scheme == "content") { "Choose a destination with Save as." }
+        val inPlace = uri.toString() == source.uri
+        fun encode(value: String) = (if (source.utf8Bom) "\uFEFF$value" else value).toByteArray(Charsets.UTF_8)
+        val bytes = encode(text)
+        require(bytes.size <= MAX_BYTES) { "This file is too large to save (more than 8 MB)." }
+        if (inPlace) {
+            require(source.writable && canOverwrite(context, uri)) { "This file is read-only. Use Save as to keep your edits." }
+            val original = context.contentResolver.openInputStream(uri)?.use { it.readLimited() }
+                ?: error("Could not check the original file. Use Save as to keep your edits.")
+            // Comparing bytes also prevents a lossy overwrite if the source wasn't valid UTF-8.
+            check(original.contentEquals(encode(source.text))) {
+                "The original changed or is not UTF-8. Use Save as to keep both versions."
+            }
+        }
+        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
+            ?: error("The provider could not open this file for writing.")
+        if (inPlace) source.copy(text = text)
+        else OpenDocument(uri.toString(), displayName(context, uri), text, null, canOverwrite(context, uri), source.utf8Bom)
+    }
+
+    private fun hasBom(bytes: ByteArray) = bytes.size >= 3 && bytes[0] == 0xEF.toByte() && bytes[1] == 0xBB.toByte() && bytes[2] == 0xBF.toByte()
 
     fun sample(context: Context, name: String): OpenDocument {
         val bytes = context.assets.open("$SAMPLES/$name").use { it.readLimited() }

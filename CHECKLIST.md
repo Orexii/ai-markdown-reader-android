@@ -80,6 +80,12 @@ page and the player's buttons stay together in the middle.
   other files in the folder open them.
 - [ ] In a file manager or Gmail, open a .md file **with AI Markdown Reader**, and **Share** one to it.
 - [ ] Share some text from a web page or a note to AI Markdown Reader: it is read as a document.
+- [ ] Choose **Preview or edit a file** with no voice installed. The page renders without a player or voice prompt.
+  Tap **Edit**, change a heading, and tap **Preview**: the new heading renders before saving.
+- [ ] Start a **New Markdown file**, cancel the Save picker, and confirm the draft is still there. Save it as
+  `Notes.md`, replace its contents with a shorter edit, save and reopen from Recent: no old text remains.
+- [ ] Edit the sample or read-only shared text: **Save** asks for a copy. Back with unsaved edits lets you
+  keep editing or discard. **⋮ → Read aloud** on the saved copy reads the new text.
 
 ## 8. Finish
 

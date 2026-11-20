@@ -10,6 +10,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,7 +58,7 @@ fun statusOf(state: PlayerState, voice: VoiceState, blocked: String? = null): St
 /** A document, rendered with the reading highlighted, and the player under it. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: ReaderWebView, onBack: () -> Unit) {
+fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: ReaderWebView, onBack: () -> Unit, onPreview: () -> Unit) {
     val state by reader.state.collectAsStateWithLifecycle()
     val settings by reader.settings.settings.collectAsStateWithLifecycle()
     val voice by reader.voice.collectAsStateWithLifecycle()
@@ -92,6 +93,7 @@ fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: Read
                 title = { Text(document.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(PlayerIcons.ArrowBack, contentDescription = "Back") } },
                 actions = {
+                    TextButton(onClick = onPreview) { Text("Preview / edit") }
                     IconButton(onClick = { reader.command("top"); webView.reveal() }, modifier = Modifier.testTag("read-from-start")) {
                         Icon(PlayerIcons.Top, contentDescription = "Read aloud from the start")
                     }
@@ -122,17 +124,25 @@ fun ReaderScreen(reader: ReaderController, document: OpenDocument, webView: Read
         },
     ) { padding ->
         // The page outlives this screen (reading goes on), so take it from its previous place first.
+        DocumentPage(webView, Modifier.padding(padding))
+    }
+
+    if (showSettings) {
+        ModalBottomSheet(onDismissRequest = { showSettings = false }) {
+            ReadingSettings(reader, settings, download)
+        }
+    }
+}
+
+@Composable
+fun DocumentPage(webView: ReaderWebView, modifier: Modifier = Modifier) {
+    androidx.compose.runtime.key(webView) {
         AndroidView(
             factory = {
                 (webView.parent as? android.view.ViewGroup)?.removeView(webView)
                 webView
             },
-            modifier = Modifier.padding(padding).fillMaxSize().testTag("page"),
+            modifier = modifier.fillMaxSize().testTag("page"),
         )
-    }
-    if (showSettings) {
-        ModalBottomSheet(onDismissRequest = { showSettings = false }) {
-            ReadingSettings(reader, settings, download)
-        }
     }
 }

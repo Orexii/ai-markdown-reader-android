@@ -20,6 +20,8 @@ The natural voice is Kokoro-82M, an open neural text-to-speech model, with 28 Am
 
 Open Markdown files from your phone, a folder of notes (images and links between files then work too), or straight from other apps with Open with or Share. Light and dark themes, and it fits both screens of a foldable.
 
+Just want to read or write? Preview Markdown without the player or a voice download, switch to editing the source, or create a new .md file. Save your changes to the original or choose where to save a copy.
+
 Private by design: no account, no ads, no analytics and no tracking.
 
 AI Markdown Reader is also a VS Code extension (AI Markdown Reader - Read Aloud on the Visual Studio Marketplace). The app is open source: github.com/Orexii/ai-markdown-reader-android

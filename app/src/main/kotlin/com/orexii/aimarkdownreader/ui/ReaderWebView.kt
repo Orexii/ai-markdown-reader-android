@@ -44,6 +44,7 @@ interface PageListener {
 class ReaderWebView(context: Context, private val listener: PageListener) : WebView(context) {
     var document: OpenDocument? = null
     private var ready = false
+    private var previewOnly = false
     private val pending = ArrayList<String>()
 
     private val loader = WebViewAssetLoader.Builder()
@@ -97,9 +98,10 @@ class ReaderWebView(context: Context, private val listener: PageListener) : WebV
         if (ready) evaluateJavascript(script, null) else pending += script
     }
 
-    fun open(document: OpenDocument, options: JsonObject) {
+    fun open(document: OpenDocument, options: JsonObject, previewOnly: Boolean = false) {
         this.document = document
-        call("AMR.open(${JsonPrimitive(document.text)}, $options); AMR.top();")
+        this.previewOnly = previewOnly
+        call("AMR.open(${JsonPrimitive(document.text)}, $options, $previewOnly); AMR.top();")
     }
 
     fun rebuild(options: JsonObject) = call("AMR.rebuild($options)")
@@ -118,7 +120,7 @@ class ReaderWebView(context: Context, private val listener: PageListener) : WebV
 
         @JavascriptInterface
         fun narration(json: String, selection: Boolean) {
-            post { listener.onNarration(json, selection) }
+            post { if (!previewOnly) listener.onNarration(json, selection) }
         }
     }
 
@@ -130,10 +132,10 @@ class ReaderWebView(context: Context, private val listener: PageListener) : WebV
                 pending.clear()
                 listener.onReady()
             }
-            "readFrom" -> listener.onReadFrom(message.getValue("line").jsonPrimitive.int, message.getValue("character").jsonPrimitive.int)
-            "command" -> message["action"]?.jsonPrimitive?.content?.let(listener::onCommand)
+            "readFrom" -> if (!previewOnly) listener.onReadFrom(message.getValue("line").jsonPrimitive.int, message.getValue("character").jsonPrimitive.int)
+            "command" -> if (!previewOnly) message["action"]?.jsonPrimitive?.content?.let(listener::onCommand)
             "openLink" -> message["href"]?.jsonPrimitive?.content?.let(listener::onLink)
-            "state" -> listener.onState(
+            "state" -> if (!previewOnly) listener.onState(
                 message["sentence"]?.jsonPrimitive?.content ?: "",
                 message["word"]?.jsonPrimitive?.content ?: "",
                 message["following"]?.jsonPrimitive?.boolean ?: true,
@@ -143,7 +145,7 @@ class ReaderWebView(context: Context, private val listener: PageListener) : WebV
 
     // "Read aloud from here" and "Read selection aloud" in the text selection menu.
     override fun startActionMode(callback: ActionMode.Callback, type: Int): ActionMode? =
-        super.startActionMode(SelectionCallback(callback), type)
+        super.startActionMode(if (previewOnly) callback else SelectionCallback(callback), type)
 
     private inner class SelectionCallback(private val wrapped: ActionMode.Callback) : ActionMode.Callback2() {
         override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
